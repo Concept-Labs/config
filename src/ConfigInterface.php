@@ -57,9 +57,13 @@ interface ConfigInterface
      *
      * @return mixed All configuration values.
      */
-    public function all(): mixed;
+    public function all(): array;
 
-    public function addProvider(ConfigDataProviderInterface $provider): static;
-    public function load() : static;
-    
+    /**
+     * Load Configuration
+     *
+     * @return boolean
+     */
+    public function load() : bool;
+
 }
