@@ -2,8 +2,8 @@
 
 namespace Cl\Config;
 
-use Cl\Config\Exception\ConfigNodeNotFoundException;
-use Cl\Config\DataProvider\ConfigDataProviderInterface;
+use Cl\Config\Exception\UnableToLoadConfigException;
+use Cl\Config\Exception\InvalidPathException;
 
 /**
  * Interface for configuration management.
@@ -17,7 +17,7 @@ interface ConfigInterface
      * @param mixed  $default The default value if the key is not found.
      *
      * @return mixed The configuration value.
-     * @throws ConfigNodeNotFoundException If root node not found
+     * @throws InvalidPathException If root node not found
      */
     public function get(string $path, mixed $default = null);
 
@@ -27,10 +27,10 @@ interface ConfigInterface
      * @param string $path  The configuration path.
      * @param mixed  $value The configuration value.
      *
-     * @return static
-     * @throws ConfigNodeNotFoundException If node not found
+     * @return ConfigInterface
+     * @throws InvalidPathException If node not found
      */
-    public function set(string $path, mixed $value): static;
+    public function set(string $path, mixed $value): ConfigInterface;
 
     /**
      * Check if a configuration key exists.
@@ -38,7 +38,7 @@ interface ConfigInterface
      * @param string $path The configuration path.
      *
      * @return bool True if the key exists, false otherwise.
-     * @throws ConfigNodeNotFoundException If root node not found
+     * @throws InvalidPathException If root node not found
      */
     public function has(string $path): bool;
 
@@ -47,22 +47,24 @@ interface ConfigInterface
      *
      * @param string $path The configuration key.
      *
-     * @return static
-     * @throws ConfigNodeNotFoundException If root node not found
+     * @return ConfigInterface
+     * @throws InvalidPathException If root node not found
      */
-    public function remove(string $path): static;
+    public function remove(string $path): ConfigInterface;
 
     /**
      * Get all configuration values.
      *
-     * @return mixed All configuration values.
+     * @return \Traversable|array All configuration values.
      */
-    public function all(): array;
+    public function all(): \Traversable|array;
 
     /**
      * Load Configuration
      *
      * @return boolean
+     * 
+     * @throws UnableToLoadConfigException
      */
     public function load() : bool;
 

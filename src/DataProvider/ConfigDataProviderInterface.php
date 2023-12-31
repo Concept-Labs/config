@@ -2,24 +2,29 @@
 
 namespace Cl\Config\DataProvider;
 
+use Cl\Config\DataProvider\Exception\DataProviderException;
+
 /**
- * Interface for configuration providers.
+ * Interface for configuration providers
  */
 interface ConfigDataProviderInterface
 {
     /**
-     * Load configuration 
+     * Converts a provider`s raw data to an array for the config usage
      *
-     * @return array 
+     * @return array
+     * @throws DataProviderException
      */
-    public function load(): array;
+    function toArray(): array;
 
     /**
-     * Save Configuration
-     *
-     * @param array $data 
+     * Converts the data to a raw data for a provider`s save usage
      * 
-     * @return boolean
+     * @param array $data 
+     *
+     * @return mixed
+     * @throws DataProviderException
      */
-    public function save(array $data): bool;
+    function toRaw(array $data): mixed;
+
 }

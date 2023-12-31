@@ -1,5 +1,5 @@
 <?php namespace Cl\Config\Exception;
-class ConfigException extends \RuntimeException
+class ConfigException extends \Exception
 {
 
 }
