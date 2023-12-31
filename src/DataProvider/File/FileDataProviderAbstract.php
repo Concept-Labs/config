@@ -128,7 +128,7 @@ abstract class FileDataProviderAbstract extends \SplFileObject implements Config
      * 
      * @return boolean
      */
-    public function tflock(int $lock): bool
+    protected function tflock(int $lock): bool
     {
         $time = time();
         $locked = false;
