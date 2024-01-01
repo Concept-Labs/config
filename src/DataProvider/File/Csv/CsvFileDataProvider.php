@@ -6,7 +6,7 @@ use Cl\Config\DataProvider\File\Csv\Exception\CsvException;
 use Cl\Config\DataProvider\File\Exception\FileReadException;
 use Cl\Config\DataProvider\File\FileDataProviderAbstract;
 use Cl\Converter\Csv\CsvConverter;
-use Cl\Converter\Exception\CsvConverterException;
+use Cl\Converter\Csv\Exception\CsvConverterException;
 use Exception;
 use Throwable;
 

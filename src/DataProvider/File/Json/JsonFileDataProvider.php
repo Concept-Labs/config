@@ -9,8 +9,7 @@ use Exception;
 use Throwable;
 
 use Cl\Config\DataProvider\File\Json\Exception\JsonDecodeException;
-
-
+use Cl\Converter\Json\CsvConverter;
 
 /**
  * Configuration provider from JSON file.
@@ -56,8 +55,8 @@ class JsonFileDataProvider extends FileDataProviderAbstract
      */
     public function fromJson(string $json, bool|null $associative = true, int|null $depth = 512, int $flags = JSON_THROW_ON_ERROR): array
     {
-        $array = [];
         try {
+            CsvConverter
             $array = json_decode($json, associative: $associative, depth: $depth, flags: $flags);
             if (empty($array)) {
                 throw new Exception("Decoded array is empty");
@@ -85,7 +84,6 @@ class JsonFileDataProvider extends FileDataProviderAbstract
      */
     public function toJson(mixed $data, int|null $flags = JSON_PRETTY_PRINT|JSON_THROW_ON_ERROR, int|null $depth = 512): string
     {
-        $json = '';
         try {
             $json = json_encode($data, flags: $flags, depth: $depth);
             if (!strlen($json)) {

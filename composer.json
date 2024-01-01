@@ -11,9 +11,9 @@
     ],
     "require": {
         "php": "^8.0",
-        "concept-labs/iterator": ">0",
-        "concept-labs/cache": ">0",
-        "concept-labs/converter": ">0"
+        "concept-labs/iterator": "^1",
+        "concept-labs/cache": "^1",
+        "concept-labs/adapter": "^1"
 
     },
     "autoload": {
