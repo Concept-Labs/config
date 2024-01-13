@@ -9,15 +9,17 @@ use PHPUnit\Framework\TestCase;
  */
 class JsonFileDataProviderWriteTest extends TestCase
 {
-    const WRITE_TEXT = '{
-        "a": {
-            "a": "a1",
-            "b":"b1"
-        },
-        "a.a": {
-            "a": "b"
-        }
-    }';
+    const WRITE_TEXT = <<<END
+{
+    "a": {
+        "a": "a1",
+        "b":"b1"
+    },
+    "a.a": {
+        "a": "b"
+    }
+}
+END;
 
     const FILE = __DIR__.'/test_config.json';
 
