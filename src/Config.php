@@ -3,7 +3,7 @@ namespace Cl\Config;
 
 use Cl\Config\Exception\UnableToLoadConfigException;
 use Cl\Config\DataProvider\ConfigDataProviderInterface;
-use Cl\Iterator\ArrayPathIterator\ArrayPathIterator;
+use Cl\Container\\ArrayPathIterator\ArrayPathIterator;
 
 
 

@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
 use function PHPUnit\Framework\assertInstanceOf;
 
 /**
- * @covers Cl\Iterator\config\config
+ * @covers Cl\Container\\config\config
  */
 class ClConfigTest extends TestCase
 {

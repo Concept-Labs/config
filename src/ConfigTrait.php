@@ -1,7 +1,7 @@
 <?php
 namespace Cl\Config;
 
-use Cl\Iterator\ArrayPathIterator\Exception\InvalidPathException as IteratorInvalidPathException;
+use Cl\Container\\ArrayPathIterator\Exception\InvalidPathException as IteratorInvalidPathException;
 use Cl\Config\Exception\InvalidPathException;
 
 trait ConfigTrait
