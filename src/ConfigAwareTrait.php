@@ -1,5 +1,5 @@
 <?php
-namespace XTC\Config;
+namespace Ctl\Config;
 
 trait ConfigAwareTrait
 {
