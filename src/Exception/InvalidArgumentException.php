@@ -1,6 +1,5 @@
 <?php
-namespace Cl\Config\Exception;
-
+namespace XTC\Config\Exception;
 
 class InvalidArgumentException extends ConfigException
 {}

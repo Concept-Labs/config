@@ -1,71 +1,96 @@
 <?php
+namespace XTC\Config;
 
-namespace Cl\Config;
-
-use Cl\Config\Exception\UnableToLoadConfigException;
-use Cl\Config\Exception\InvalidPathException;
-
-/**
- * Interface for configuration management.
- */
 interface ConfigInterface
 {
     /**
-     * Get a configuration value by key.
-     *
-     * @param string $path    The configuration path.
-     * @param mixed  $default The default value if the key is not found.
-     *
-     * @return mixed The configuration value.
-     * @throws InvalidPathException If root node not found
+     * The path separatog. e.g. "key.subkey.subsubkey"
      */
-    public function get(string $path, mixed $default = null);
+    const PATH_SEPARATOR = '.';
 
     /**
-     * Set a configuration value.
+     * Get the config value by path
      *
-     * @param string $path  The configuration path.
-     * @param mixed  $value The configuration value.
-     *
-     * @return ConfigInterface
-     * @throws InvalidPathException If node not found
-     */
-    public function set(string $path, mixed $value): ConfigInterface;
-
-    /**
-     * Check if a configuration key exists.
-     *
-     * @param string $path The configuration path.
-     *
-     * @return bool True if the key exists, false otherwise.
-     * @throws InvalidPathException If root node not found
-     */
-    public function has(string $path): bool;
-
-    /**
-     * Remove a configuration key.
-     *
-     * @param string $path The configuration key.
-     *
-     * @return ConfigInterface
-     * @throws InvalidPathException If root node not found
-     */
-    public function remove(string $path): ConfigInterface;
-
-    /**
-     * Get all configuration values.
-     *
-     * @return \Traversable|array All configuration values.
-     */
-    public function all(): \Traversable|array;
-
-    /**
-     * Load Configuration
-     *
-     * @return boolean
+     * @param string ...$paths An array of paths e.g get("key", "subkey", "subkey")
+     *                         Or a path e.g. get("key.subkey.subsubkey")
+     *                         First way is prefered because 
+     *                         it uses defined separator automatically
      * 
-     * @throws UnableToLoadConfigException
+     * @return mixed|array|object
      */
-    public function load() : bool;
+    function get(string ...$paths);
 
+    /**
+     * If config has value
+     *
+     * @param string ...$paths The paths. @see get()
+     * 
+     * @return bool
+     */
+    function has(string ...$paths): bool;
+
+    /**
+     * Get the all config data
+     *
+     * @return void
+     */
+    function all();
+
+    /**
+     * Set the config data
+     *
+     * @param array $data The data
+     * 
+     * @return void
+     */
+    public function setData(array $data): void;
+
+    /**
+     * Saves the current state of the config into stack
+     *
+     * @return void
+     */
+    public function pushState(): void;
+    
+    /**
+     * Restore previous state of the config
+     *
+     * @return void
+     */
+    public function popState(): void;
+
+    /**
+     * Merge into the config data from a values
+     *
+     * @param array $values The array for merge from
+     * 
+     * @return void
+     */
+    public function mergeFrom(array $values):void;
+
+
+    /**
+     * Get self instance with new data
+     *
+     * @param array $data The data @see setData()
+     * 
+     * @return ConfigInterface
+     */
+    public function withData(array $data): ConfigInterface;
+
+    /**
+     * Get self instance with data taken by path
+     *
+     * @param string ...$paths The paths. @see get()
+     * 
+     * @return ConfigInterface
+     */
+    public function withPath(string ...$paths);
+
+    /**
+     * Reset the state of self instance
+     *
+     * @return void
+     */
+    public function reset(): void;
 }

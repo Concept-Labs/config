@@ -1,5 +1,5 @@
-<?php namespace Cl\Config\Exception;
-class ConfigException extends \Exception
-{
+<?php
+namespace XTC\Config\Exception;
 
-}
+class ConfigException extends \Exception implements ConfigExceptionInterface
+{}
