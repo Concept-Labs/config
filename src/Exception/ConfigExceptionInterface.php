@@ -1,5 +1,5 @@
 <?php
-namespace Ctl\Config\Exception;
+namespace Concept\Config\Exception;
 
-interface ConfigExceptionInterface extends \ThrowableStub
+interface ConfigExceptionInterface extends \Throwable
 {}

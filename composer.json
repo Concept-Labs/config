@@ -14,14 +14,14 @@
     },
     "autoload": {
         "psr-4": {
-            "Ctl\\Config\\": "src/"
+            "Concept\\Config\\": "src/"
         }
     },
     "require-dev": {
     },
     "autoload-dev": {
         "psr-4": {
-            "Ctl\\Config\\Test\\": "test/"
+            "Concept\\Config\\Test\\": "test/"
         }
     }
 

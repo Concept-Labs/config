@@ -1,5 +1,5 @@
 <?php
-namespace Ctl\Config;
+namespace Concept\Config;
 
 interface ConfigAwareInterface
 {
@@ -11,12 +11,16 @@ interface ConfigAwareInterface
      * 
      * @return void
      */
-    function setConfig(ConfigInterface $config): void;
+    function setConfig(ConfigInterface $config): self;
 
     /**
      * Get a config value
      *
-     * @param string ...$path The config path
+     * @param string ...$path The config path. 
+     * Example: ("some.path.to.config")
+     * Same as: ("some", "path", "to", "config")
+     * Same as: ("some", "path.to", "config")
+     * Same as: (...["some", "path", "to", "config"])
      * 
      * @return mixed
      */

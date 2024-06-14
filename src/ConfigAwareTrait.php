@@ -1,20 +1,38 @@
 <?php
-namespace Ctl\Config;
+namespace Concept\Config;
 
 trait ConfigAwareTrait
 {
     protected ?ConfigInterface $config = null;
 
     /**
+     * @todo not deprecated?
+     * @deprecated
+     * @param ConfigInterface $config
+     * 
+     * @return self
+     */
+    // public function withConfig(ConfigInterface $config): self
+    // {
+    //     $clone = clone $this;
+    //     $clone->config = $config;
+
+    //     return $clone;
+    // }
+
+    /**
+     * @deprecated
      * Set a config
      *
      * @param ConfigInterface $config The config
      * 
      * @return void
      */
-    public function setConfig(ConfigInterface $config): void
+    public function setConfig(ConfigInterface $config): self
     {
         $this->config = $config;
+
+        return $this;
     }
 
     /**
@@ -34,7 +52,7 @@ trait ConfigAwareTrait
      *
      * @return ConfigInterface
      */
-    public function getConfig(): ConfigInterface
+    public function getConfig(): self
     {
         return $this->config;
     }

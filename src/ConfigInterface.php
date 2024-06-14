@@ -1,5 +1,5 @@
 <?php
-namespace Ctl\Config;
+namespace Concept\Config;
 
 interface ConfigInterface
 {
@@ -21,6 +21,14 @@ interface ConfigInterface
     function get(string ...$paths);
 
     /**
+     * @param string $paths
+     * @param mixed $value
+     * 
+     * @return self
+     */
+    function set(string $path, $value): self;
+
+    /**
      * If config has value
      *
      * @param string ...$paths The paths. @see get()
@@ -30,6 +38,16 @@ interface ConfigInterface
     function has(string ...$paths): bool;
 
     /**
+     * Unset the config value by path
+     * 
+     * @param string ...$paths
+     * 
+     * @return self
+     */
+    public function unset(string ...$paths): self;
+
+    /**
+     * @deprecated
      * Get the all config data
      *
      * @return void
@@ -37,29 +55,37 @@ interface ConfigInterface
     function all();
 
     /**
+     * Get the all config data
+     * 
+     * @return array
+     */
+    public function asArray(): array;
+
+    /**
      * Set the config data
      *
-     * @param array $data The data
+     * @param array|null $data The data
      * 
      * @return void
      */
-    public function setData(array $data): void;
+    public function setData(?array $data = null): void;
 
     /**
      * Saves the current state of the config into stack
      *
      * @return void
      */
-    public function pushState(): void;
+    public function pushState(): self;
     
     /**
      * Restore previous state of the config
      *
      * @return void
      */
-    public function popState(): void;
+    public function popState(): self;
 
     /**
+     * @deprecated
      * Merge into the config data from a values
      *
      * @param array $values The array for merge from
@@ -68,24 +94,52 @@ interface ConfigInterface
      */
     public function mergeFrom(array $values):void;
 
+    /**
+     * Merge into the config data from a values
+     *
+     * @param array $values The array for merge from
+     * 
+     * @return void
+     */
+    public function merge(array $data): self;
+
 
     /**
      * Get self instance with new data
      *
-     * @param array $data The data @see setData()
+     * @param array|null $data The data @see setData()
      * 
-     * @return ConfigInterface
+     * @return self
      */
-    public function withData(array $data): ConfigInterface;
+    public function withData(?array $data = null): self;
 
+    /**
+     * @deprecated
+     * Get self instance with data taken by path
+     *
+     * @param string ...$paths The paths. @see get()
+     * 
+     * @return self
+     */
+    public function withPath(string ...$paths);
+    
     /**
      * Get self instance with data taken by path
      *
      * @param string ...$paths The paths. @see get()
      * 
-     * @return ConfigInterface
+     * @return self
      */
-    public function withPath(string ...$paths);
+    public function fromPath(string ...$paths);
+
+    /**
+     * Create a path from parts
+     * 
+     * @param string ...$paths
+     * 
+     * @return string
+     */
+    public function createPath(string ...$paths): string;
 
     /**
      * Reset the state of self instance
