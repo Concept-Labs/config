@@ -1,6 +1,6 @@
 {
     "name": "concept-labs/config",
-    "description": "(C)oncept-Labs Cache",
+    "description": "(C)oncept-Labs Config",
     "keywords": ["php","config"],
     "license": "MIT",
     "authors": [
