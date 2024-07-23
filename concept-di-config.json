@@ -1,0 +1,9 @@
+{
+    "di": {
+        "preference": {
+            "Concept\\Config\\ConfigInterface": {
+                "class": "Concept\\Config\\Config"
+            }
+        }
+    }
+}

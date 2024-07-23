@@ -92,16 +92,6 @@ class Config implements ConfigInterface, IteratorAggregate
     /**
      * {@inheritDoc}
      */
-    public function merge(array $data): self
-    {
-        $this->config = array_replace_recursive($this->config, $data);
-
-        return $this;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     public function get(string ...$paths)
     {
         /**
@@ -185,8 +175,18 @@ class Config implements ConfigInterface, IteratorAggregate
         return $this->get('');
     }
 
+     /**
+     * {@inheritDoc}
+     */
+    public function merge(array $data): self
+    {
+        $this->config = array_replace_recursive($this->config, $data);
+
+        return $this;
+    }
 
     /**
+     * @deprecated
      * {@inheritDoc}
      */
     public function mergeFrom(array $values):void
