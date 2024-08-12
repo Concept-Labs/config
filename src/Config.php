@@ -38,6 +38,12 @@ class Config implements ConfigInterface, IteratorAggregate
     public function __construct(array $config = [])
     {
         $this->setData($config);
+        $this->init();
+    }
+
+    protected function init(): self
+    {
+        return $this;
     }
 
     /**
