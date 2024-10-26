@@ -1,12 +1,25 @@
 <?php
 namespace Concept\Config;
 
-interface ConfigInterface
+use IteratorAggregate;
+
+interface ConfigInterface extends IteratorAggregate
 {
     /**
      * The path separatog. e.g. "key.subkey.subsubkey"
      */
     const PATH_SEPARATOR = '.';
+    const AUTLOAD_NODE = 'autoload-config';
+
+    /**
+     * Load the config from a file (JSON)
+     * @todo: Add support for other formats
+     *
+     * @param string $path The path to the file
+     * 
+     * @return self
+     */
+    public function load(string $path): self;
 
     /**
      * Get the config value by path
@@ -66,9 +79,9 @@ interface ConfigInterface
      *
      * @param array|null $data The data
      * 
-     * @return void
+     * @return self
      */
-    public function setData(?array $data = null): void;
+    public function setData(?array $data = null): self;
 
     /**
      * Saves the current state of the config into stack
@@ -131,6 +144,7 @@ interface ConfigInterface
      * @return self
      */
     public function fromPath(string ...$paths);
+    //public function from(string ...$paths);
 
     /**
      * Create a path from parts

@@ -1,8 +1,13 @@
 {
     "di": {
-        "preference": {
-            "Concept\\Config\\ConfigInterface": {
-                "class": "Concept\\Config\\Config"
+        "module": {
+            "concept-labs/config": {
+                "preference": {
+                    "Concept\\Config\\ConfigInterface": {
+                        "class": "Concept\\Config\\Config",
+                        "singleton": true
+                    }
+                }
             }
         }
     }

@@ -2,10 +2,11 @@
 namespace Concept\Config;
 
 use ArrayIterator;
-use IteratorAggregate;
+use ReflectionClass;
 use Traversable;
+use Concept\Config\Exception\InvalidConfigDataException;
 
-class Config implements ConfigInterface, IteratorAggregate
+class Config implements ConfigInterface
 {
 
     /**
@@ -15,12 +16,16 @@ class Config implements ConfigInterface, IteratorAggregate
      */
     protected array $config = [];
 
+    protected array $loaded = [];
+
     /**
      * States backup stack.
      *
      * @var array<array>
      */
     protected array $state = [];
+
+    private ?string $staticDir = null;
 
     /**
      * Chache
@@ -29,22 +34,159 @@ class Config implements ConfigInterface, IteratorAggregate
      */
     //protected array $cache = [];
 
+    const ETC_AUTOLOADS = [
+        'etc/config.json',
+        'etc/config.local.json',
+    ];
+
+    /**
+     * {@inheritDoc}
+     */
+    public function reset(): void
+    {
+        $this->config = [];
+        $this->state = [];
+        $this->loaded = [];
+//        $this->cache = [];
+    }
+
     /**
      * @deprecated
      * The constructor
      *
      * @param array $config
      */
-    public function __construct(array $config = [])
+    public function __construct()
     {
-        $this->setData($config);
         $this->init();
     }
 
+    /**
+     * Initialize the config
+     * 
+     * @return self
+     */
     protected function init(): self
     {
+        return $this->etc();
+    }
+
+    /**
+     * Get the static directory
+     * 
+     * @return string
+     */
+    protected function staticDir(): string
+    {
+        if (null !== $this->staticDir) {
+            return $this->staticDir;
+        }
+        
+        return $this->staticDir = dirname((new ReflectionClass(get_called_class()))->getFileName());
+    }
+
+    /**
+     * Load the config files from etc directory
+     * 
+     * @return self
+     */
+    protected function etc(): self
+    {
+       
+        return $this->autoload(static::ETC_AUTOLOADS, $this->staticDir());
+    }
+
+    /**
+     * Autoload the config files
+     * 
+     * @param string[] $autoloads
+     * @param string $basePath
+     * 
+     * @return self
+     */
+    protected function autoload(array $autoloads, string $basePath): self
+    {
+        foreach ($autoloads as $pattern) {
+
+            if (strpos($pattern, DIRECTORY_SEPARATOR) !== 0) {
+                /**
+                 * Prepend the base path if the pattern is not absolute
+                 */
+                $pattern = $basePath . DIRECTORY_SEPARATOR . $pattern;
+            }
+
+            foreach (glob($pattern) as $path) {
+                $this->load($path);
+            }
+            
+        }
+
         return $this;
     }
+
+    /**
+     * Check if the config file can be supported
+     * 
+     * @param string $path
+     * 
+     * @return bool
+     */
+    protected function canSupport(string $path): bool
+    {
+        return pathinfo($path, PATHINFO_EXTENSION) === 'json';
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function load(string $path): self
+    {
+        if ($this->isLoaded($path)) {
+            return $this;
+        }
+
+        $dataArray = [];
+
+        if (!file_exists($path)) {
+            throw new InvalidConfigDataException(sprintf('Config file not found: %s', $path));
+        }
+
+        if (!is_readable($path)) {
+            throw new InvalidConfigDataException(sprintf('Config file not readable: %s', $path));
+        }
+
+        if (!$this->canSupport($path)) {
+            throw new InvalidConfigDataException(sprintf('Unsupported config file: %s', $path));
+        }
+
+        try {
+
+            $dataArray = json_decode(file_get_contents($path), true, JSON_THROW_ON_ERROR);
+
+            if (!is_array($dataArray)) {
+                throw new InvalidConfigDataException(sprintf('Invalid config file: %s', $path));
+            }
+
+            $this->autoload($dataArray['autoload'] ?? [], dirname($path));
+
+            unset($dataArray['autoload']);
+
+        } catch (\JsonException $e) {
+            throw new InvalidConfigDataException(sprintf('Error loading config file %s: %s', $path, $e->getMessage()));
+        }
+
+        $this->merge($dataArray);
+
+        $this->loaded[] = $path;
+
+        return $this;
+    }
+
+    protected function isLoaded(string $path): bool
+    {
+        return in_array($path, $this->loaded);
+    }
+
 
     /**
      * Get the iterator
@@ -59,9 +201,11 @@ class Config implements ConfigInterface, IteratorAggregate
     /**
      * {@inheritDoc}
      */
-    public function setData(?array $data = null): void
+    public function setData(?array $data = null): self
     {
         $this->config = $data ?? [];
+
+        return $this;
     }
 
     /**
@@ -117,6 +261,9 @@ class Config implements ConfigInterface, IteratorAggregate
         );
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function set(string $path, $value): self
     {
         $keys = $this->splitPath($path);
@@ -136,6 +283,9 @@ class Config implements ConfigInterface, IteratorAggregate
         return $this;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function unset(string ...$paths): self
     {
         $path = $this->createPath(...$paths);
@@ -197,7 +347,7 @@ class Config implements ConfigInterface, IteratorAggregate
      */
     public function mergeFrom(array $values):void
     {
-        $this->config = array_replace_recursive($this->config, $values);
+        $this->config = $this->merge($values);
     }
 
     /**
@@ -221,19 +371,10 @@ class Config implements ConfigInterface, IteratorAggregate
 
         return $this;
     }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function reset(): void
-    {
-        $this->config = [];
-        $this->state = [];
-//        $this->cache = [];
-    }
     
     /**
      * Split the path string by a separator. Default is @see const PATH_DEFAULT_SEPARATOR
+     * next example works but it is not recommended:
      * Separator will be ignored inside double quotes.
      * e.g. `"11.2".3.5."another.key"` equals to an array access like $array["11.2"]["3"]["5"]["another.key"]
      *
