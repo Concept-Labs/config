@@ -331,6 +331,14 @@ class Config implements ConfigInterface
         return $this->get('');
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    public function asJson(): string
+    {
+        return json_encode($this->asArray(), JSON_PRETTY_PRINT);
+    }
+
      /**
      * {@inheritDoc}
      */
@@ -401,6 +409,14 @@ class Config implements ConfigInterface
     public function createPath(string ...$paths): string
     {
         return implode(self::PATH_SEPARATOR, $paths);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function path(string ...$paths): string
+    {
+        return $this->createPath(...$paths);
     }
 
     /**

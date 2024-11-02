@@ -75,6 +75,13 @@ interface ConfigInterface extends IteratorAggregate
     public function asArray(): array;
 
     /**
+     * Get the all config data as JSON
+     * 
+     * @return string
+     */
+    public function asJson(): string;
+
+    /**
      * Set the config data
      *
      * @param array|null $data The data
@@ -154,6 +161,15 @@ interface ConfigInterface extends IteratorAggregate
      * @return string
      */
     public function createPath(string ...$paths): string;
+
+    /**
+     * Get the path to the config node
+     * 
+     * @param string ...$paths
+     * 
+     * @return string
+     */
+    public function path(string ...$paths): string;
 
     /**
      * Reset the state of self instance
