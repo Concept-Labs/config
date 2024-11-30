@@ -9,6 +9,7 @@ class Config extends PathAccess implements ConfigInterface
 {
     protected array $loaded = [];
     private ?string $staticDir = null;
+    // static private ?string $vendorDir = null;
 
     /**
      * Chache
@@ -41,7 +42,7 @@ class Config extends PathAccess implements ConfigInterface
     {
         parent::init();
 
-        return $this->etc();
+        return $this->autoloadEtc();
     }
 
     /**
@@ -63,7 +64,7 @@ class Config extends PathAccess implements ConfigInterface
      * 
      * @return self
      */
-    protected function etc(): self
+    protected function autoloadEtc(): self
     {
        
         return $this->autoload(static::ETC_AUTOLOADS, $this->staticDir());
@@ -109,10 +110,19 @@ class Config extends PathAccess implements ConfigInterface
         return pathinfo($path, PATHINFO_EXTENSION) === 'json';
     }
 
+    protected function readJson(string $path): array
+    {
+        try {
+            return json_decode(file_get_contents($path), true, JSON_THROW_ON_ERROR);
+        } catch (\Throwable $e) {
+            throw new InvalidConfigDataException(sprintf('Error loading config file %s: %s', $path, $e->getMessage()));
+        }
+    }
+
     /**
      * {@inheritDoc}
      */
-    public function load(string $path): self
+    public function loadJsonFile(string $path): self
     {
         if ($this->isLoaded($path)) {
             return $this;
@@ -132,27 +142,30 @@ class Config extends PathAccess implements ConfigInterface
             throw new InvalidConfigDataException(sprintf('Unsupported config file: %s', $path));
         }
 
-        try {
+        $dataArray = $this->readJson($path);
 
-            $dataArray = json_decode(file_get_contents($path), true, JSON_THROW_ON_ERROR);
-
-            if (!is_array($dataArray)) {
-                throw new InvalidConfigDataException(sprintf('Invalid config file: %s', $path));
-            }
-
-            $this->autoload($dataArray['autoload'] ?? [], dirname($path));
-
-            unset($dataArray['autoload']);
-
-        } catch (\JsonException $e) {
-            throw new InvalidConfigDataException(sprintf('Error loading config file %s: %s', $path, $e->getMessage()));
+        if (!is_array($dataArray)) {
+            throw new InvalidConfigDataException(sprintf('Invalid config file: %s', $path));
         }
+
+        $this->autoload($dataArray['autoload'] ?? [], dirname($path));
+
+        unset($dataArray['autoload']);
 
         $this->merge($dataArray);
 
         $this->loaded[] = $path;
 
         return $this;
+    }
+
+    /**
+     * @deprecated
+     * {@inheritDoc}
+     */
+    public function load(string $path): self
+    {
+        return $this->loadJsonFile($path);
     }
 
     /**

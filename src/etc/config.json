@@ -1,5 +1,8 @@
 {
-    "concept-labs/config": {
-        "author": "Concept Labs"
+    "___concept-labs": {
+        "author": "mtr",
+        "email": "info.concept.labs@gmail.com",
+        "concept-labs/config": {
+        }
     }
 }

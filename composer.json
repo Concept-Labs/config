@@ -1,5 +1,6 @@
 {
     "name": "concept-labs/config",
+    "type": "library",
     "description": "(C)oncept-Labs Config",
     "keywords": ["php","config"],
     "license": "Apache-2.0",
@@ -23,6 +24,11 @@
     "autoload-dev": {
         "psr-4": {
             "Concept\\Config\\Test\\": "test/"
+        }
+    },
+    "extra": {
+        "concept": {
+            "include": "concept.json"
         }
     }
 

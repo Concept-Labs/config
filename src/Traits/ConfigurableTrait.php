@@ -19,6 +19,11 @@ trait ConfigurableTrait
         $this->___config = $config;
 
         return $this;
+
+        // $clone = clone $this;
+        // $clone->___config = $config;
+
+        // return $clone;
     }
 
     /**

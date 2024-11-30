@@ -3,7 +3,7 @@ namespace Concept\Config;
 
 trait ConfigAwareTrait
 {
-    protected ?ConfigInterface $config = null;
+    protected ?ConfigInterface $___config = null;
 
     /**
      * @todo not deprecated?
@@ -30,7 +30,7 @@ trait ConfigAwareTrait
      */
     public function setConfig(ConfigInterface $config): self
     {
-        $this->config = $config;
+        $this->___config = $config;
 
         return $this;
     }
@@ -42,19 +42,19 @@ trait ConfigAwareTrait
      * 
      * @return mixed
      */
-    public function getConfigValue(string ...$path)
-    {
-        return $this->config->get(...$path);
-    }
+    // public function getConfigValue(string ...$path)
+    // {
+    //     return $this->___config->get(...$path);
+    // }
 
     /**
      * Get configuration instance
      *
      * @return ConfigInterface
      */
-    public function getConfig(): self
+    public function getConfig(): ConfigInterface
     {
-        return $this->config;
+        return $this->___config;
     }
 
 }
