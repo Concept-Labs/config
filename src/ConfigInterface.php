@@ -2,14 +2,13 @@
 namespace Concept\Config;
 
 use Concept\PathAccess\PathAccessInterface;
-use IteratorAggregate;
 
 interface ConfigInterface extends PathAccessInterface
 {
    
-    const AUTLOAD_NODE = 'autoload-config';
 
     /**
+     * @deprecated
      * Load the config from a file (JSON)
      * @todo: Add support for other formats
      *
@@ -18,5 +17,14 @@ interface ConfigInterface extends PathAccessInterface
      * @return self
      */
     public function load(string $path): self;
+
+    /**
+     * Load the config from a JSON file
+     * 
+     * @param string $path The path to the file
+     * 
+     * @return self
+     */
+    public function loadJsonFile(string $path): self;
     
 }
