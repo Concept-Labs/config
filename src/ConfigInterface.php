@@ -1,9 +1,16 @@
 <?php
 namespace Concept\Config;
 
-use Concept\PathAccess\PathAccessInterface;
+use Concept\Config\PathAccess\PathAccessInterface;
+use IteratorAggregate;
+use JsonSerializable;
 
-interface ConfigInterface extends PathAccessInterface
+interface ConfigInterface 
+    extends 
+        PathAccessInterface,
+        JsonSerializable,
+        IteratorAggregate
+
 {
    
 
@@ -14,17 +21,29 @@ interface ConfigInterface extends PathAccessInterface
      *
      * @param string $path The path to the file
      * 
-     * @return self
+     * @return static
      */
-    public function load(string $path): self;
+    public function load(string $path): static;
 
     /**
-     * Load the config from a JSON file
-     * 
-     * @param string $path The path to the file
-     * 
-     * @return self
+     * Saves the current state  into stack
+     *
+     * @return void
      */
-    public function loadJsonFile(string $path): self;
+    public function pushState(): static;
+    
+    /**
+     * Restore previous state 
+     *
+     * @return void
+     */
+    public function popState(): static;
+
+    /**
+     * Restore the initial state
+     *
+     * @return void
+     */
+    public function resetState(): static;
     
 }

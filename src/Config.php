@@ -3,12 +3,29 @@ namespace Concept\Config;
 
 use ReflectionClass;
 use Concept\Config\Exception\InvalidConfigDataException;
-use Concept\PathAccess\PathAccess;
+use Concept\Config\PathAccess\PathAccessTrait;
 
-class Config extends PathAccess implements ConfigInterface
+class Config implements ConfigInterface
 {
+
+    use PathAccessTrait;
+
+    /**
+     * Storage
+     *
+     * @var array
+     */
+    protected array $data = [];
+
     protected array $loaded = [];
     private ?string $staticDir = null;
+    /**
+     * States backup stack.
+     * @todo: save to file/db etc.
+     *
+     * @var array<array>
+     */
+    protected array $state = [];
     // static private ?string $vendorDir = null;
 
     /**
@@ -23,25 +40,26 @@ class Config extends PathAccess implements ConfigInterface
         'etc/config.local.json',
     ];
 
+
     /**
      * {@inheritDoc}
      */
-    public function reset(): void
+    public function reset(): static
     {
-        parent::reset();
+        $this->data = [];
         $this->loaded = [];
-//        $this->cache = [];
+        $this->state = [];
+
+        return $this;
     }
 
     /**
      * Initialize the config
      * 
-     * @return self
+     * @return static
      */
-    protected function init(): self
+    protected function init(): static
     {
-        parent::init();
-
         return $this->autoloadEtc();
     }
 
@@ -62,9 +80,9 @@ class Config extends PathAccess implements ConfigInterface
     /**
      * Load the config files from etc directory
      * 
-     * @return self
+     * @return static
      */
-    protected function autoloadEtc(): self
+    protected function autoloadEtc(): static
     {
        
         return $this->autoload(static::ETC_AUTOLOADS, $this->staticDir());
@@ -76,9 +94,9 @@ class Config extends PathAccess implements ConfigInterface
      * @param string[] $autoloads
      * @param string $basePath
      * 
-     * @return self
+     * @return static
      */
-    protected function autoload(array $autoloads, string $basePath): self
+    protected function autoload(array $autoloads, string $basePath): static
     {
         foreach ($autoloads as $pattern) {
 
@@ -122,7 +140,7 @@ class Config extends PathAccess implements ConfigInterface
     /**
      * {@inheritDoc}
      */
-    public function loadJsonFile(string $path): self
+    public function loadJsonFile(string $path): static
     {
         if ($this->isLoaded($path)) {
             return $this;
@@ -144,6 +162,11 @@ class Config extends PathAccess implements ConfigInterface
 
         $dataArray = $this->readJson($path);
 
+        // $dataArray = array_replace_recursive(
+        //     $this->include(dirname(realpath($path)), $dataArray),
+        //     $dataArray
+        // );
+
         if (!is_array($dataArray)) {
             throw new InvalidConfigDataException(sprintf('Invalid config file: %s', $path));
         }
@@ -159,12 +182,33 @@ class Config extends PathAccess implements ConfigInterface
         return $this;
     }
 
+    protected function processIncludes(string $originalPath, array $data): array
+    {
+
+        foreach ($data as $key => $value) {
+            if (is_array($value)) {
+                $data[$key] = $this->processIncludes($originalPath, $value);
+            }
+
+            if (preg_match('/^@include:(.*)$/', $value, $matches)) {
+                $includePath = $matches[1];
+                if (strpos($includePath, DIRECTORY_SEPARATOR) !== 0) {
+                    $includePath = dirname($originalPath) . DIRECTORY_SEPARATOR . $includePath;
+                }
+                $data[$key] = $this->readJson($includePath);
+            }
+        }
+        
+        return $data;
+    }
+
     /**
      * @deprecated
      * {@inheritDoc}
      */
-    public function load(string $path): self
+    public function load(string $path): static
     {
+        
         return $this->loadJsonFile($path);
     }
 
@@ -179,4 +223,39 @@ class Config extends PathAccess implements ConfigInterface
     {
         return in_array($path, $this->loaded);
     }
+
+     /**
+     * {@inheritDoc}
+     */
+    public function pushState(): static
+    {
+        array_push($this->state, $this->data);
+
+        return $this;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function popState(): static
+    {
+        if (null !== $state = array_pop($this->state)) {
+            $this->data = $state;
+        }
+
+        return $this;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function resetState(): static
+    {
+        while (null !== $state = array_pop($this->state)) {
+            $this->data = $state;
+        }
+
+        return $this;
+    }
+
 }

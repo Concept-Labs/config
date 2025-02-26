@@ -2,6 +2,7 @@
 namespace Concept\Config\Traits;
 
 use Concept\Config\ConfigInterface;
+use Concept\Config\Exception\ConfigNotSetException;
 
 trait ConfigurableTrait
 {
@@ -12,18 +13,35 @@ trait ConfigurableTrait
      * 
      * @param ConfigInterface $config
      * 
-     * @return self
+     * @return static
      */
-    public function withConfig(ConfigInterface $config): self
+    public function setConfig(ConfigInterface $config): static
     {
         $this->___config = $config;
 
         return $this;
+    }
 
-        // $clone = clone $this;
-        // $clone->___config = $config;
+    /**
+     * Set the config
+     * 
+     * @param ConfigInterface $config
+     * 
+     * @return static
+     */
+    public function withConfig(ConfigInterface $config): static
+    {
+        return (clone $this)->setConfig($config);
+    }
 
-        // return $clone;
+    /**
+     * Check if the config is set
+     * 
+     * @return bool
+     */
+    public function hasConfig(): bool
+    {
+        return $this->___config !== null;
     }
 
     /**
@@ -31,13 +49,13 @@ trait ConfigurableTrait
      * 
      * @return ConfigInterface
      */
-    public function getConfig(): ConfigInterface
+    public function getConfig(?string $path = null): ConfigInterface
     {
-        if ($this->___config === null) {
-            throw new \RuntimeException('Config not set');
+        if (!$this->hasConfig()) {
+            throw new ConfigNotSetException('Config not set');
         }
 
-        return $this->___config;
+        return $path ? $this->___config->get($path) : $this->___config;
     }
 }
     

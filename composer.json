@@ -1,18 +1,17 @@
 {
     "name": "concept-labs/config",
     "type": "library",
-    "description": "(C)oncept-Labs Config",
+    "description": "(C)oncept-Labs Config Manager",
     "keywords": ["php","config"],
-    "license": "Apache-2.0",
+    "license": "MIT",
     "authors": [
         {
-            "name": "Mtr",
-            "email": "info.concept.labs@gmail.com"
+            "name": "Viktor Halytskyi",
+            "email": "concept.galitsky@gmail.com"
         }
     ],
     "require": {
-        "php": "^7.2|^7.4|^8.0|^8.2",
-        "concept-labs/path-access": "^1"
+        "php": ">=8.2"
     },
     "autoload": {
         "psr-4": {

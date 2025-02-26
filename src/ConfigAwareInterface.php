@@ -11,7 +11,7 @@ interface ConfigAwareInterface
      * 
      * @return void
      */
-    function setConfig(ConfigInterface $config): self;
+    function setConfig(ConfigInterface $config): static;
 
     /**
      * Get a config value

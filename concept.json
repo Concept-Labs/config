@@ -1,5 +1,5 @@
 {
-    "di": {
+    "singularity": {
         "package": {
             "concept-labs/config": {
                 "preference": {

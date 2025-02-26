@@ -10,9 +10,9 @@ trait ConfigAwareTrait
      * @deprecated
      * @param ConfigInterface $config
      * 
-     * @return self
+     * @return static
      */
-    // public function withConfig(ConfigInterface $config): self
+    // public function withConfig(ConfigInterface $config): static
     // {
     //     $clone = clone $this;
     //     $clone->config = $config;
@@ -28,7 +28,7 @@ trait ConfigAwareTrait
      * 
      * @return void
      */
-    public function setConfig(ConfigInterface $config): self
+    public function setConfig(ConfigInterface $config): static
     {
         $this->___config = $config;
 
