@@ -1,14 +1,25 @@
 <?php
 namespace Concept\Config;
 
-use ReflectionClass;
-use Concept\Config\Exception\InvalidConfigDataException;
+use Psr\SimpleCache\CacheInterface;
+use Concept\Config\Adapter\Adapater;
+use Concept\Config\Adapter\Export\ExportAdapter;
+use Concept\Config\Cache\LRUCache;
 use Concept\Config\PathAccess\PathAccessTrait;
+use Concept\Config\Plugin\Middleware\ContextVariablePlugin;
+use Concept\Config\Plugin\PluginManager;
+use Concept\Config\Plugin\PluginManagerInterface;
+use ReflectionClass;
 
 class Config implements ConfigInterface
 {
-
     use PathAccessTrait;
+
+    /**
+      @debug: remove
+     */
+    static $instances = [];
+
 
     /**
      * Storage
@@ -17,8 +28,18 @@ class Config implements ConfigInterface
      */
     protected array $data = [];
 
-    protected array $loaded = [];
+    private array $context = [];
+
+    private ?PluginManagerInterface $pluginManager = null;
+
+    //protected array $loaded = [];
+
     private ?string $staticDir = null;
+
+
+    protected ?CacheInterface $cache = null;
+    protected int $cacheSize = 1000;
+
     /**
      * States backup stack.
      * @todo: save to file/db etc.
@@ -26,7 +47,14 @@ class Config implements ConfigInterface
      * @var array<array>
      */
     protected array $state = [];
-    // static private ?string $vendorDir = null;
+
+    /**
+     * The created from path
+     * Stores the path of the node that was created from
+     * 
+     * @var array
+     */
+    private array $createdFromPath = [];
 
     /**
      * Chache
@@ -35,10 +63,30 @@ class Config implements ConfigInterface
      */
     //protected array $cache = [];
 
-    const ETC_AUTOLOADS = [
-        'etc/config.json',
-        'etc/config.local.json',
-    ];
+    public function __construct(array $data = [])
+    {
+        $this->data = $data;
+        /**
+         @todo remove debug
+         */
+        //static::$instances[] = \WeakReference::create($this);
+
+
+        $this->getPluginManager()->add(
+            new ContextVariablePlugin($this)
+        );
+
+    }
+
+    public function export(string $path): static
+    {
+        ExportAdapter::export(
+            $this->compile(),
+            $path
+        );
+
+        return $this;
+    }
 
 
     /**
@@ -47,169 +95,36 @@ class Config implements ConfigInterface
     public function reset(): static
     {
         $this->data = [];
-        $this->loaded = [];
         $this->state = [];
-
+        //$this->loaded = [];
         return $this;
     }
 
-    /**
-     * Initialize the config
-     * 
-     * @return static
-     */
-    protected function init(): static
+    
+    private function getCache(): ?CacheInterface
     {
-        return $this->autoloadEtc();
-    }
-
-    /**
-     * Get the static directory
-     * 
-     * @return string
-     */
-    protected function staticDir(): string
-    {
-        if (null !== $this->staticDir) {
-            return $this->staticDir;
-        }
         
-        return $this->staticDir = dirname((new ReflectionClass(get_called_class()))->getFileName());
-    }
-
-    /**
-     * Load the config files from etc directory
-     * 
-     * @return static
-     */
-    protected function autoloadEtc(): static
-    {
-       
-        return $this->autoload(static::ETC_AUTOLOADS, $this->staticDir());
-    }
-
-    /**
-     * Autoload the config files
-     * 
-     * @param string[] $autoloads
-     * @param string $basePath
-     * 
-     * @return static
-     */
-    protected function autoload(array $autoloads, string $basePath): static
-    {
-        foreach ($autoloads as $pattern) {
-
-            if (strpos($pattern, DIRECTORY_SEPARATOR) !== 0) {
-                /**
-                 * Prepend the base path if the pattern is not absolute
-                 */
-                $pattern = $basePath . DIRECTORY_SEPARATOR . $pattern;
-            }
-
-            foreach (glob($pattern) as $path) {
-                $this->load($path);
-            }
-            
-        }
-
-        return $this;
-    }
-
-    /**
-     * Check if the config file can be supported
-     * 
-     * @param string $path
-     * 
-     * @return bool
-     */
-    protected function canSupport(string $path): bool
-    {
-        return pathinfo($path, PATHINFO_EXTENSION) === 'json';
-    }
-
-    protected function readJson(string $path): array
-    {
-        try {
-            return json_decode(file_get_contents($path), true, JSON_THROW_ON_ERROR);
-        } catch (\Throwable $e) {
-            throw new InvalidConfigDataException(sprintf('Error loading config file %s: %s', $path, $e->getMessage()));
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function loadJsonFile(string $path): static
-    {
-        if ($this->isLoaded($path)) {
-            return $this;
-        }
-
-        $dataArray = [];
-
-        if (!file_exists($path)) {
-            throw new InvalidConfigDataException(sprintf('Config file not found: %s', $path));
-        }
-
-        if (!is_readable($path)) {
-            throw new InvalidConfigDataException(sprintf('Config file not readable: %s', $path));
-        }
-
-        if (!$this->canSupport($path)) {
-            throw new InvalidConfigDataException(sprintf('Unsupported config file: %s', $path));
-        }
-
-        $dataArray = $this->readJson($path);
-
-        // $dataArray = array_replace_recursive(
-        //     $this->include(dirname(realpath($path)), $dataArray),
-        //     $dataArray
-        // );
-
-        if (!is_array($dataArray)) {
-            throw new InvalidConfigDataException(sprintf('Invalid config file: %s', $path));
-        }
-
-        $this->autoload($dataArray['autoload'] ?? [], dirname($path));
-
-        unset($dataArray['autoload']);
-
-        $this->merge($dataArray);
-
-        $this->loaded[] = $path;
-
-        return $this;
-    }
-
-    protected function processIncludes(string $originalPath, array $data): array
-    {
-
-        foreach ($data as $key => $value) {
-            if (is_array($value)) {
-                $data[$key] = $this->processIncludes($originalPath, $value);
-            }
-
-            if (preg_match('/^@include:(.*)$/', $value, $matches)) {
-                $includePath = $matches[1];
-                if (strpos($includePath, DIRECTORY_SEPARATOR) !== 0) {
-                    $includePath = dirname($originalPath) . DIRECTORY_SEPARATOR . $includePath;
-                }
-                $data[$key] = $this->readJson($includePath);
-            }
-        }
-        
-        return $data;
+        return $this->cache;// ??= new LRUCache($this->cacheSize);
     }
 
     /**
      * @deprecated
      * {@inheritDoc}
      */
-    public function load(string $path): static
+    public function load(mixed $source, bool $merge = true): static
     {
-        
-        return $this->loadJsonFile($path);
+        $data = Adapater::load($source);
+
+        if ($merge) {
+            $this->merge($data);
+        } else {
+            $this->data = $data;
+        }
+
+        //$this->getPluginManager()->afterLoad($source, $data);
+
+        return $this;
+
     }
 
     /**
@@ -219,10 +134,10 @@ class Config implements ConfigInterface
      * 
      * @return bool
      */
-    protected function isLoaded(string $path): bool
-    {
-        return in_array($path, $this->loaded);
-    }
+    // protected function isLoaded(string $path): bool
+    // {
+    //     return in_array($path, $this->loaded);
+    // }
 
      /**
      * {@inheritDoc}
@@ -257,5 +172,130 @@ class Config implements ConfigInterface
 
         return $this;
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function setContext(array $context): static
+    {
+        $this->context = $context;
+
+        return $this;
+    
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function addContext(array $context): static
+    {
+        $this->context = array_merge($this->context, $context);
+
+        return $this;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getContext(?string $path = null): mixed
+    {
+        if (null === $path) {
+            return $this->context;
+        }
+
+        return $this->context[$path] ?? null;
+    }
+
+    /**
+     * Get the static directory
+     * 
+     * @return string
+     */
+    protected function staticDir(): string
+    {
+        if (null !== $this->staticDir) {
+            return $this->staticDir;
+        }
+        
+        return $this->staticDir = dirname((new ReflectionClass(get_called_class()))->getFileName());
+    }
+
+    /**
+     * Get the plugin manager
+     * 
+     * @return PluginManagerInterface
+     */
+    protected function getPluginManager(): PluginManagerInterface
+    {
+        return $this->pluginManager ??= new PluginManager($this);
+    }
+
+    /**
+     * Merge data
+     * 
+     * @param array $data
+     * 
+     * @return array
+     */
+    protected function compile(?string $path = null): array
+    {
+        $data = $this->data;
+
+        if (null !== $path) {
+            $data = $this->get($path);
+        }
+
+        return $this->compileNode($data);
+    }
+
+    /**
+     * Merge data
+     * 
+     * @param array $data
+     * 
+     * @return array
+     */
+    protected function compileNode(array $node): array
+    {
+        $data = [];
+
+        foreach ($node as $key => $value) {
+            if (is_array($value)) {
+                $data[$key] = $this->compileNode($value);
+            } else {
+                $data[$key] = $this->getPluginManager()->process($key, $value);
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * Autoload the config files
+     * 
+     * @param string[] $autoloads
+     * @param string $basePath
+     * 
+     * @return static
+     */
+    // protected function autoload(array $autoloads, string $basePath): static
+    // {
+    //     foreach ($autoloads as $pattern) {
+
+    //         if (strpos($pattern, DIRECTORY_SEPARATOR) !== 0) {
+    //             /**
+    //              * Prepend the base path if the pattern is not absolute
+    //              */
+    //             $pattern = $basePath . DIRECTORY_SEPARATOR . $pattern;
+    //         }
+
+    //         foreach (glob($pattern) as $path) {
+    //             $this->load($path);
+    //         }
+            
+    //     }
+
+    //     return $this;
+    // }
 
 }

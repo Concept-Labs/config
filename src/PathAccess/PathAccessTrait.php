@@ -1,31 +1,13 @@
 <?php
 namespace Concept\Config\PathAccess;
 
-use Psr\SimpleCache\CacheInterface;
-use Concept\Config\Cache\LRUCache;
 use Traversable;
 use ArrayIterator;
 
 trait PathAccessTrait
 {
-    private string $pathsSeparator = '.';
-    
-     
 
-    protected ?CacheInterface $cache = null;
-    protected int $cacheSize = 1000;
-
-    private array $createdFromPath = [];
-
-    /**
-     * Initialize the config
-     * 
-     * @return static
-     */
-    protected function init(): static
-    {
-        return $this;
-    }
+    const PATH_SEPARATOR = '.';
 
     /**
      * Initialize the config
@@ -45,11 +27,17 @@ trait PathAccessTrait
         return $this->data;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function &asArrayRef(): array
     {
         return $this->data;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function jsonSerialize(int $flags = 0): mixed
     {
         
@@ -67,13 +55,6 @@ trait PathAccessTrait
 
         return $this;
     }
-
-    private function getCache(): CacheInterface
-    {
-        return $this->cache ?? new LRUCache($this->cacheSize);
-    }
-
-    
 
     /**
      * Get the iterator
@@ -111,13 +92,6 @@ trait PathAccessTrait
         return $this;
     }
 
-    /**
-     * Get the path separator
-     */
-    protected function getPathSeparator(): string
-    {
-        return $this->pathsSeparator;
-    }
 
     /**
      * {@inheritDoc}
@@ -133,27 +107,26 @@ trait PathAccessTrait
     /**
      * {@inheritDoc}
      */
-    public function fromPath(string ...$paths): ?static
+    public function fromPath(string $path): ?static
     {
-        return $this->from(...$paths);
+        return $this->from($path);
     }
 
     /**
      * {@inheritDoc}
      */
-    public function from(string ...$paths): ?static
+    public function from(string $path): ?static
     {
-        $data = $this->get(...$paths);
+        $data = $this->get($path);
 
         if (!is_array($data)) {
             return null;
             throw new \InvalidArgumentException('Data must be an array. Given Path: ' . $this->createPath(...$paths));
         }
-        $fromConfig = $this->withData(
-            $data
-        );
+        
+        $fromConfig = (new static())->hydrate($data);
 
-        $fromConfig->createdFromPath = $paths;
+        $fromConfig->createdFromPath[] = $path;
 
         return $fromConfig;
     }
@@ -166,47 +139,106 @@ trait PathAccessTrait
         return $this->createdFromPath;
     }
 
+    // public function &getRef(string ...$paths)
+    // {
+    //     $path = $this->createPath(...$paths);
+
+    //     if ($this->getCache()->has($path)) {
+    //         return $this->getCache()->get($path);
+    //     }
+
+    //     $reference = &$this->data;
+
+    //     foreach ($this->splitPath($path) as $key) {
+    //         if (!is_array($reference) || !array_key_exists($key, $reference)) {
+    //             return null; 
+    //         }
+
+    //         $reference = &$reference[$key]; 
+    //     }
+
+    //     $this->getCache()->set($path, $reference);
+
+    //     return $reference;
+    // }
+
     /**
      * {@inheritDoc}
      */
-    public function get(string ...$paths)
+    public function get(string $path = '', mixed $default = null, bool $byRef = false): mixed
     {
-        $path = $this->createPath(...$paths);
+        $value = $this->getRaw($path, $default, $byRef);
+        //$value = $this->getPluginManager()->process($path, $value);
 
-        if ($this->getCache()->has($path)) {
+        return $value;
+    }
+
+    /**
+     * {@}
+     */
+    public function getRaw(string $path = '', mixed $default = null, bool $byRef = false): mixed
+    {
+        if ($this->getCache() && $this->getCache()->has($path)) {
             return $this->getCache()->get($path);
         }
 
-        $reference = $this->data;
+        $reference = $this->getValueByPath($path, $this->data);
+
+        // $reference = &$this->data;
+
+        // foreach ($this->splitPath($path) as $key) {
+        //     if (!is_array($reference) || !array_key_exists($key, $reference)) {
+        //         $null = null;
+        //         return $null; 
+        //     }
+
+        //     $reference = &$reference[$key]; 
+        // }
+
+        
+        if ($byRef) {
+            $value = &$reference;
+        } else {
+            $value = $reference;
+            //$value = is_array($reference) ? array_merge([], $reference) : $reference;
+        }
+
+        if ($this->getCache()) {
+            $this->getCache()->set($path, $value);
+        }
+
+        return $value ?? $default;
+    }
+
+    protected function getValueByPath(string $path, array &$data): mixed
+    {
+        $reference = &$data;
 
         foreach ($this->splitPath($path) as $key) {
             if (!is_array($reference) || !array_key_exists($key, $reference)) {
-                return null; 
+                return null;
             }
 
-            $reference = $reference[$key]; 
+            $reference = &$reference[$key];
         }
-
-        $this->getCache()->set($path, $reference);
 
         return $reference;
     }
 
-
     /**
      * {@inheritDoc}
      */
-    public function has(string ...$paths): bool
+    public function has(string $path): bool
     {
-        return $this->_has(...$paths);
+        return $this->_has($path);
     }
 
     /**
      * @todo: implement more efficient has() method
      */
-    protected function _has(string ...$paths): bool
+    protected function _has(string $path): bool
     {
-        return null !== $this->get(...$paths);
+        return null !== $this->get($path);
     }
 
     /**
@@ -227,8 +259,9 @@ trait PathAccessTrait
             $reference = &$reference[$key];
         }
         $reference[$lastKey] = $value;
-
-        $this->getCache()->set($path, $value);
+        if ($this->getCache()) {
+            $this->getCache()->set($path, $value);
+        }
 
         return $this;
     }
@@ -236,10 +269,8 @@ trait PathAccessTrait
     /**
      * {@inheritDoc}
      */
-    public function unset(string ...$paths): static
+    public function unset(string $path): static
     {
-        $path = $this->createPath(...$paths);
-
         $keys = $this->splitPath($path);
         $lastKey = array_pop($keys);
         $reference = &$this->data;
@@ -319,9 +350,7 @@ trait PathAccessTrait
     /**
      * Split the path string by a separator. Default is @see const PATH_DEFAULT_SEPARATOR
      * next example works but it is not recommended:
-     * Separator will be ignored inside double quotes.
-     * e.g. `"11.2".3.5."another.key"` equals to an array access like $array["11.2"]["3"]["5"]["another.key"]
-     *
+     * 
      * @param string $path the Path string
      * 
      * @return array
@@ -329,8 +358,16 @@ trait PathAccessTrait
     protected function splitPath(string $path): array
     {
         return array_filter(
-            explode($this->getPathSeparator(), $path)
+            explode(static::PATH_SEPARATOR, $path)
         );
+
+        /**
+         * More complex implementation but with more features
+         * Separator will be ignored inside double quotes.
+         *  e.g. `"11.2".3.5."another.key"` 
+         *  equals to array access like $array["11.2"]["3"]["5"]["another.key"]
+         *
+         */
         return
             array_filter( // Remove empty items
                 array_map( // Trim double quotes
@@ -345,19 +382,11 @@ trait PathAccessTrait
      * 
      * @return string
      */
-    public function createPath(string ...$paths): string
+    public static function path(string ...$paths): string
     {
         return is_array($paths) && count($paths) > 1 
-            ? join($this->getPathSeparator(), $paths) 
+            ? join(static::PATH_SEPARATOR, $paths) 
             : array_shift($paths) ?? '';
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function path(string ...$paths): string
-    {
-        return $this->createPath(...$paths);
     }
 
     /**
@@ -369,7 +398,7 @@ trait PathAccessTrait
     {
         return sprintf(
             '/%s(?=(?:[^"]*"[^"]*")*(?![^"]*"))/',
-            preg_quote($this->getPathSeparator())
+            preg_quote(static::PATH_SEPARATOR)
         );
     }
 }

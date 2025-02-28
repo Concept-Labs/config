@@ -1,27 +1,34 @@
 <?php
 namespace Concept\Config\Adapter;
 
-use Concept\Config\Config;
-use Concept\Config\ConfigInterface;
-use Concept\Config\Exception\InvalidArgumentException;
-
-class JsonAdapter 
+class JsonAdapter implements AdapterInterface
 {
-    public static function load(string $path): ConfigInterface
+    /**
+     * Check if the source is a JSON string
+     * 
+     * @param string $source
+     * 
+     * @return bool
+     */
+    public static function isJson(string $source): bool
     {
-        try {
-            $json = file_get_contents($path);
-            $data = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
-        } catch (\Throwable $e) {
-            throw new InvalidArgumentException(
-                sprintf(
-                    "Unable to load file: %s (%s) ",
-                    $path,
-                    $e->getMessage()
-                )
-            );
-        }
+        return is_string($source) && strpos($source, '{') === 0;
+        /**
+         * @todo: or use json_decode()?
+         * will be slower but more reliable
+         */
+        json_decode($source);
 
-        return ArrayAdapter::load($data);
+        return json_last_error() === JSON_ERROR_NONE;
     }
+
+    /**
+     * {@inheritDoc}
+     * @throws \JsonException
+     */
+    public static function load(mixed $source): array
+    {
+        return json_decode($source, true, 512, JSON_THROW_ON_ERROR);
+    }
+
 }

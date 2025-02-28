@@ -1,13 +1,15 @@
 <?php
 namespace Concept\Config\Adapter;
 
-use Concept\Config\Config;
-use Concept\Config\ConfigInterface;
+use Concept\Config\Exception\InvalidArgumentException;
 
-class ArrayAdapter
+class ArrayAdapter implements AdapterInterface
 {
-    public static function load(array $data): ConfigInterface
+    public static function load(mixed $source): array
     {
-        return (new Config)->withData($data);
+        if (!is_array($source)) {
+            throw new InvalidArgumentException('Invalid config source provided. Source is not an array');
+        }
+        return $source;
     }
 }

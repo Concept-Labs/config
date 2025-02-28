@@ -39,22 +39,38 @@ interface PathAccessInterface
     /**
      * Check if the data has value by path
      *
-     * @param string ...$paths List of paths e.g has("key", "subkey", "subkey")
-     *                         Or a path e.g. has("key.subkey.subsubkey")
-     *                         First way is preferred because 
-     *                         it uses defined separator automatically
+     * @param string $paths The path e.g. "key.subkey.subsubkey"
      * 
      * @return bool
      */
-    function has(string ...$paths): bool;
+    function has(string $paths): bool;
 
     /**
      * Get the value by path
-     * @see has()
      * 
      * @return mixed
      */
-    function get(string ...$paths);
+    function get(string $path = '', mixed $default = null, bool $yRef = false): mixed;
+
+    /**
+     * Get the value by path without processing plugins
+     * 
+     * @param string $path The path
+     * @param mixed $default The default value
+     * @param bool $byRef Get by reference
+     * 
+     * @return mixed
+     */
+    public function getRaw(string $path = '', mixed $default = null, bool $byRef = false): mixed;
+
+
+    /**
+     * Get the value by path by reference
+     * 
+     * @return mixed
+     */
+    //public function &getRef(string ...$paths);
+
 
     /**
      * @param string $paths
@@ -68,11 +84,11 @@ interface PathAccessInterface
     /**
      * Unset the value by path
      * 
-     * @param string ...$paths
+     * @param string $paths
      * 
      * @return static
      */
-    public function unset(string ...$paths): static;
+    public function unset(string $path): static;
 
     /**
      * @deprecated
@@ -135,18 +151,16 @@ interface PathAccessInterface
     /**
      * Get cloned instance with data taken by path
      *
-     * @param string ...$paths The paths. @see get()
+     * @param string $paths The path. @see get()
      * 
      * @return static
      */
     //public function fromPath(string ...$paths);
-    public function from(string ...$paths): ?static;
+    public function from(string $path): ?static;
 
     /**
      * Get the path to the node from which the current config was created
      * Note: The path is relative to the root of the original config
-     * 
-     * @param string ...$paths
      * 
      * @return array
      */
@@ -157,11 +171,11 @@ interface PathAccessInterface
      * @deprecated
      * Get the path to the  node
      * 
-     * @param string ...$paths
+     * @param string $path
      * 
      * @return static
      */
-    public function fromPath(string ...$paths): ?static;
+    public function fromPath(string $path): ?static;
 
 
     /**
@@ -171,9 +185,7 @@ interface PathAccessInterface
      * 
      * @return string
      */
-    public function path(string ...$paths): string;
-
-    
+    public static function path(string ...$paths): string;
 
 
     /**

@@ -1,4 +1,5 @@
 {
+    "settings": {},
     "singularity": {
         "package": {
             "concept-labs/config": {
