@@ -52,5 +52,5 @@ $config->load('/path/to/compiled.json', false); // Replace existing data
 if ($config->has('path')) {
     echo "Key 'path' exists!";
 }
+//Note: The has() method checks keys in memory ($data or $compiledData) and does not read file contents.
 ```
-`Note: The has() method checks keys in memory ($data or $compiledData) and does not read file contents.`
