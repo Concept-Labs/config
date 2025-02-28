@@ -22,9 +22,11 @@ composer require concept-labs/config
 use Concept\Config\Config;
 $config = new Config([
     'context' => ['root' => '/app'],
-    'path' => '${root}/var/.cache'
+    'path' => [
+        'to' => '${root}/var/.cache'
+    ]
 ]);
-echo $config->get('path'); // Outputs: '/app/var/.cache'
+echo $config->get('path.to'); // Outputs: '/app/var/.cache'
 ```
 **Adding Plugins
 Plugins allow customization of configuration value processing:
