@@ -1,4 +1,4 @@
-# Concept Labs Config
+# Concept Labs Simple Config
 
 Welcome to `Concept-Labs/config` — a flexible and efficient configuration management library for PHP. This package is designed as part of the `Singularity` framework but can be used as a standalone component.
 
