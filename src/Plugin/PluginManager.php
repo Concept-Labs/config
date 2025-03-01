@@ -6,7 +6,7 @@ use Concept\Config\ConfigInterface;
 
 class PluginManager implements PluginManagerInterface
 {
-    private ConfigInterface $config;
+    private ?ConfigInterface $config = null;
 
     /** @var array<int, ConfigPluginInterface[]> */
     private array $plugins = [];
@@ -18,18 +18,24 @@ class PluginManager implements PluginManagerInterface
      * PluginManager constructor.
      * @param ConfigInterface $config
      */
-    public function __construct(ConfigInterface $config)
+    public function __construct()
     {
-        $this->config = $config;
     }
+
+    // public function setConfigInstance(ConfigInterface $config): static
+    // {
+    //     $this->config = $config;
+    //    // $this->init();
+    //     return $this;
+    // }
 
     /**
      * @return ConfigInterface
      */
-    private function getConfig(): ConfigInterface
-    {
-        return $this->config;
-    }
+    // private function getConfig(): ConfigInterface
+    // {
+    //     return $this->config;
+    // }
 
     private function init()
     {
@@ -63,7 +69,7 @@ class PluginManager implements PluginManagerInterface
      * @param mixed $value
      * @return mixed
      */
-    public function process(string $path, mixed $value): mixed
+    public function process(string $path, mixed $value, ConfigInterface $config): mixed
     {
         return ($this->getMiddlewareStack())($path, $value);
     }
@@ -87,13 +93,13 @@ class PluginManager implements PluginManagerInterface
      */
     private function buildMiddlewareStack(): callable
     {
-        $next = function ($path, $value) {
+        $next = function ($path, $value, $config) {
             return $value;
         };
 
         foreach ($this->getPlugins() as $plugin) {
-            $next = function ($path, $value) use ($plugin, $next) {
-                return $plugin->process($path, $value, $this->getConfig(), $next);
+            $next = function ($path, $value, $config) use ($plugin, $next) {
+                return $plugin->process($path, $value, $config, $next);
             };
         }
 

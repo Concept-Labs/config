@@ -1,10 +1,10 @@
 <?php
 namespace Concept\Config;
 
+use Concept\Config\Adapter\Adapter;
 use Psr\SimpleCache\CacheInterface;
-use Concept\Config\Adapter\Adapater;
+use Concept\Config\Adapter\AdapterInterface;
 use Concept\Config\Adapter\Export\ExportAdapter;
-use Concept\Config\Cache\LRUCache;
 use Concept\Config\PathAccess\PathAccessTrait;
 use Concept\Config\Plugin\Middleware\ContextVariablePlugin;
 use Concept\Config\Plugin\PluginManager;
@@ -31,6 +31,7 @@ class Config implements ConfigInterface
     private array $context = [];
 
     private ?PluginManagerInterface $pluginManager = null;
+    private ?AdapterInterface $adapter = null;
 
     //protected array $loaded = [];
 
@@ -56,6 +57,8 @@ class Config implements ConfigInterface
      */
     private array $createdFromPath = [];
 
+    private bool $isCompiled = false;
+
     /**
      * Chache
      * 
@@ -63,15 +66,21 @@ class Config implements ConfigInterface
      */
     //protected array $cache = [];
 
-    public function __construct(array $data = [])
+    public function __construct(
+        array $data = []
+        //private AdapterIterface $adapter, ?CacheInterface $cache = null
+    )
     {
         $this->data = $data;
         /**
          @todo remove debug
          */
-        //static::$instances[] = \WeakReference::create($this);
+        static::$instances[] = \WeakReference::create($this);
 
 
+        /**
+          @todo: think how to aggregate plugins
+         */
         $this->getPluginManager()->add(
             new ContextVariablePlugin($this)
         );
@@ -80,8 +89,8 @@ class Config implements ConfigInterface
 
     public function export(string $path): static
     {
-        ExportAdapter::export(
-            $this->compile(),
+        $this->compile();
+        $this->getAdapter()->export(
             $path
         );
 
@@ -108,24 +117,32 @@ class Config implements ConfigInterface
     }
 
     /**
-     * @deprecated
      * {@inheritDoc}
      */
     public function load(mixed $source, bool $merge = true): static
     {
-        $data = Adapater::load($source);
+        
+        $data = $this->getAdapter()->import($source);
 
         if ($merge) {
             $this->merge($data);
         } else {
-            $this->data = $data;
+            $this->hydrate($data);
         }
 
         //$this->getPluginManager()->afterLoad($source, $data);
 
         return $this;
-
     }
+
+    public function import(mixed $source): static
+    {
+        $this->load($source, false);
+
+        return $this;
+    }
+
+
 
     /**
      * Check if the config file is already loaded
@@ -227,7 +244,13 @@ class Config implements ConfigInterface
      */
     protected function getPluginManager(): PluginManagerInterface
     {
-        return $this->pluginManager ??= new PluginManager($this);
+        
+        return $this->pluginManager ??= (new PluginManager($this));//->setConfigInstance($this);
+    }
+
+    protected function getAdapter(): AdapterInterface
+    {
+        return $this->adapter ??= new Adapter($this);
     }
 
     /**
@@ -237,15 +260,25 @@ class Config implements ConfigInterface
      * 
      * @return array
      */
-    protected function compile(?string $path = null): array
+    protected function compile(?string $path = null): static
     {
+        if ($this->isCompiled) {
+            return $this;
+        }
+
         $data = $this->data;
 
         if (null !== $path) {
             $data = $this->get($path);
         }
 
-        return $this->compileNode($data);
+        $data = $this->compileNode($data);
+
+        $this->hydrate($data);
+
+        $this->isCompiled = true;
+
+        return $this;
     }
 
     /**
@@ -263,7 +296,7 @@ class Config implements ConfigInterface
             if (is_array($value)) {
                 $data[$key] = $this->compileNode($value);
             } else {
-                $data[$key] = $this->getPluginManager()->process($key, $value);
+                $data[$key] = $this->getPluginManager()->process($key, $value, $this);
             }
         }
 

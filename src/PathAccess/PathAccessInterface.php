@@ -21,6 +21,13 @@ interface PathAccessInterface
     public function asArray(): array;
 
     /**
+     * Get the all data copy
+     * 
+     * @return array
+     */
+    public function asArrayCopy(?array $array = null): array;
+
+    /**
      * Get the all data by reference
      * 
      * @return array

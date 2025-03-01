@@ -4,6 +4,7 @@ namespace Concept\Config\Plugin\Middleware;
 use Concept\Config\ConfigInterface;
 use Concept\Config\Plugin\ConfigPluginInterface;
 
+
 class ContextVariablePlugin implements ConfigPluginInterface
 {
 
