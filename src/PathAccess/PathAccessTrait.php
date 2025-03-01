@@ -30,6 +30,19 @@ trait PathAccessTrait
     /**
      * {@inheritDoc}
      */
+    public function asArrayCopy(?array $array = null): array
+    {
+        $array = $array ?? $this->data;
+        $result = [];
+        foreach ($array as $key => $value) {
+            $result[$key] = is_array($value) ? $this->asArrayCopy($value) : $value;
+        }
+        return $result;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     public function &asArrayRef(): array
     {
         return $this->data;
@@ -125,6 +138,11 @@ trait PathAccessTrait
         }
         
         $fromConfig = (new static())->hydrate($data);
+        /**
+          @todo: test this change
+          @deprecated: not needed
+         */
+        //$this->getAdapter()->export($this->asArrayCopy(), $fromConfig);
 
         $fromConfig->createdFromPath[] = $path;
 
@@ -298,6 +316,9 @@ trait PathAccessTrait
     //     return $this;
     // }
 
+    /**
+      @todo: improve this. 
+    */
     public function merge(array|PathAccessInterface $data): static {
         $source = $data instanceof PathAccessInterface ? $data->asArray() : $data;
         $this->mergeArrays($this->data, $source); // Виклик без $this-> для статичного контексту

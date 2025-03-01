@@ -1,6 +1,8 @@
 <?php
 namespace Concept\Config\Plugin;
 
+use Concept\Config\ConfigInterface;
+
 interface PluginManagerInterface
 {
     /**
@@ -21,6 +23,8 @@ interface PluginManagerInterface
      * 
      * @return mixed
      */
-    public function process(string $path, mixed $value): mixed;
+    public function process(string $path, mixed $value, ConfigInterface $config): mixed;
+
+    //public function setConfigInstance(ConfigInterface $config): static;
 
 }

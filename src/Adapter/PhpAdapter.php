@@ -1,30 +1,23 @@
 <?php
 namespace Concept\Config\Adapter;
 
-use Concept\Config\Adapter\Exception\InvalidArgumentException;
+use Concept\Config\Exception\InvalidArgumentException;
 
-class JsonAdapter extends AbstractAdapter
+class PhpFileAdapter extends AbstractAdapter
 {
     /**
      * {@inheritDoc}
      * 
      * @throws InvalidArgumentException
-     */
+     */ 
     public function import(mixed $source): array
     {
-        if (!is_string($source) || !is_file($source)) {
-            throw new InvalidArgumentException(
-                sprintf(
-                    'Invalid config source provided. Source (%s) is not a file',
-                    $source
-                )
-            );
+        if (is_string($source) || !is_file($source)) {
+            throw new InvalidArgumentException('Invalid config source provided. Source is not a file');
         }
 
         try {
-            $json = file_get_contents($source);
-            $data = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
-
+            $data = require $source;
         } catch (\Throwable $e) {
             throw new InvalidArgumentException(
                 sprintf(
@@ -35,9 +28,7 @@ class JsonAdapter extends AbstractAdapter
             );
         }
 
-        //$this->getConfig()->hydrate($data);
-
-        return $data;
+        return $data;// ? $this->getConfig()->hydrate($data) : false;
     }
 
     /**
@@ -59,22 +50,13 @@ class JsonAdapter extends AbstractAdapter
         $data = $this->getConfig()->asArray();
 
         try {
-         $json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
-        } catch (\Throwable $e) {
-            throw new InvalidArgumentException(
-                sprintf(
-                    "Unable to encode data to JSON: %s",
-                    $e->getMessage()
-                )
-            );
-        }
+            $content = "<?php\n\nreturn ".var_export($data, true).";\n";
+            file_put_contents($path, $content);
 
-        try {
-            file_put_contents($path, $json);
         } catch (\Throwable $e) {
             throw new InvalidArgumentException(
                 sprintf(
-                    "Unable to write to file: %s (%s) ",
+                    "Unable to save file: %s (%s) ",
                     $path,
                     $e->getMessage()
                 )
@@ -83,5 +65,4 @@ class JsonAdapter extends AbstractAdapter
 
         return true;
     }
-
 }

@@ -1,15 +1,34 @@
 <?php
 namespace Concept\Config\Adapter;
 
-use Concept\Config\Exception\InvalidArgumentException;
+use Concept\Config\Adapter\Exception\InvalidArgumentException;
 
-class ArrayAdapter implements AdapterInterface
+class ArrayAdapter extends AbstractAdapter
 {
-    public static function load(mixed $source): array
+    /**
+     * {@inheritDoc}
+     * 
+     * @throws InvalidArgumentException
+     */
+    public function import(mixed $source): array
     {
         if (!is_array($source)) {
             throw new InvalidArgumentException('Invalid config source provided. Source is not an array');
         }
-        return $source;
+
+        return $this->getConfig()->asArrayCopy($source);
     }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @throws InvalidArgumentException
+     */
+    public function export(mixed $target): bool
+    {
+        throw new InvalidArgumentException(
+            "Cannot export to an array. Use a asArray() or asArrayCopy() method to get the array"
+        );
+    }
+
 }

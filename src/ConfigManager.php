@@ -58,7 +58,7 @@ class ConfigManager implements ConfigManagerInterface
      */
     protected function addConfigItem(string|array|ConfigInterface $source): static
     {
-        $this->getConfig()->load($source);
+        $this->getConfig()->load($source, true);
 
         return $this;
     }

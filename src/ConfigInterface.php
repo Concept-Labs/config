@@ -20,26 +20,35 @@ interface ConfigInterface
      * Load the config from a source
      * @todo: Add support for other formats
      *
-     * @param mixed $source The source
+     * @param string $source The source
      *  Supported sources:
-     * - File path (json)
-     * - Array
-     * - JSON string
-     * @todo: Add support for other formats
+     * - File path (json, php, [yaml: not yet])
+     @todo: Add support for other formats
+     * 
+     * @param bool $merge Merge the loaded config with the current config
+     * 
      * 
      * @return static
      */
-    public function load(mixed $source): static;
+    public function load(string $source, bool $merge = true): static;
+
+    /**
+     * Import the config from a source
+     *
+     * @param string $source The source
+     * 
+     * @return static
+     */
+    public function import(string $source): static;
 
     /**
      * Export the config to a file
      *
-     * @param string $path The file path
+     * @param string $target The file path
      * 
-     * @return string The file path
+     * @return static
      */
-    public function export(string $path): static;
-
+    public function export(string $target): static;
 
     /**
      * Set the context

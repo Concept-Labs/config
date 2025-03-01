@@ -3,5 +3,6 @@ namespace Concept\Config\Adapter;
 
 interface AdapterInterface
 {
-    public static function load(mixed $source): array;
+    public function import(mixed $source): array;
+    public function export(mixed $target): bool;
 }
