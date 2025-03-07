@@ -1,50 +1,17 @@
 <?php
 
-namespace Concept\Config\Plugin;
+namespace Concept\Config;
 
 use Concept\Config\ConfigInterface;
+use Concept\Config\Plugin\ConfigPluginInterface;
 
 class PluginManager implements PluginManagerInterface
 {
-    private ?ConfigInterface $config = null;
-
     /** @var array<int, ConfigPluginInterface[]> */
     private array $plugins = [];
 
     /** @var callable|null */
     private  $stack = null;
-
-    /**
-     * PluginManager constructor.
-     * @param ConfigInterface $config
-     */
-    public function __construct()
-    {
-    }
-
-    // public function setConfigInstance(ConfigInterface $config): static
-    // {
-    //     $this->config = $config;
-    //    // $this->init();
-    //     return $this;
-    // }
-
-    /**
-     * @return ConfigInterface
-     */
-    // private function getConfig(): ConfigInterface
-    // {
-    //     return $this->config;
-    // }
-
-    private function init()
-    {
-        $this->plugins = [];
-        $this->stack = null;
-        foreach ($this->getConfig()->get('plugins', []) as $plugin) {
-            $this->add($plugin);
-        }
-    }
 
     /**
      * Add a plugin to the manager
@@ -57,8 +24,9 @@ class PluginManager implements PluginManagerInterface
     {
         $priority = $priority ?? $plugin->getPriority() ?? 0;
         $this->plugins[$priority][] = $plugin;
-        krsort($this->plugins);
+        ksort($this->plugins);
         $this->stack = null;
+        
         return $this;
     }
 
@@ -71,7 +39,7 @@ class PluginManager implements PluginManagerInterface
      */
     public function process(string $path, mixed $value, ConfigInterface $config): mixed
     {
-        return ($this->getMiddlewareStack())($path, $value);
+        return ($this->getMiddlewareStack())($path, $value, $config);
     }
 
     /**
@@ -113,8 +81,8 @@ class PluginManager implements PluginManagerInterface
      */
     private function getPlugins(): iterable
     {
-        foreach ($this->plugins as $pluginsAtPriority) {
-            foreach ($pluginsAtPriority as $plugin) {
+        foreach ($this->plugins as $pluginsAtPriority => $plugins) {
+            foreach ($plugins as $plugin) {
                 yield $plugin;
             }
         }

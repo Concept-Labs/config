@@ -2,7 +2,6 @@
 
 namespace Concept\Config\PathAccess;
 
-
 interface PathAccessInterface 
 {
 
@@ -35,15 +34,6 @@ interface PathAccessInterface
     public function &asArrayRef(): array;
 
     /**
-     * Set the path separator
-     *
-     * @param string $separator The separator
-     * 
-     * @return static
-     */
-    public function setPathSeparator(string $separator): static;
-
-    /**
      * Check if the data has value by path
      *
      * @param string $paths The path e.g. "key.subkey.subsubkey"
@@ -55,21 +45,11 @@ interface PathAccessInterface
     /**
      * Get the value by path
      * 
-     * @return mixed
-     */
-    function get(string $path = '', mixed $default = null, bool $yRef = false): mixed;
-
-    /**
-     * Get the value by path without processing plugins
-     * 
-     * @param string $path The path
-     * @param mixed $default The default value
-     * @param bool $byRef Get by reference
+     * @param string $paths The path e.g. "key.subkey.subsubkey"
      * 
      * @return mixed
      */
-    public function getRaw(string $path = '', mixed $default = null, bool $byRef = false): mixed;
-
+    public function get(string $path = ''): mixed;
 
     /**
      * Get the value by path by reference
@@ -166,15 +146,6 @@ interface PathAccessInterface
     public function from(string $path): ?static;
 
     /**
-     * Get the path to the node from which the current config was created
-     * Note: The path is relative to the root of the original config
-     * 
-     * @return array
-     */
-    public function getCreatedFromPath(): array;
-
-
-    /**
      * @deprecated
      * Get the path to the  node
      * 
@@ -193,12 +164,4 @@ interface PathAccessInterface
      * @return string
      */
     public static function path(string ...$paths): string;
-
-
-    /**
-     * Reset the state of self instance
-     *
-     * @return static
-     */
-    public function reset(): static;
 }

@@ -3,11 +3,28 @@ namespace Concept\Config\PathAccess;
 
 use Traversable;
 use ArrayIterator;
+use Concept\Config\Interpolate\InterpolatorInterface;
 
-trait PathAccessTrait
+class  PathAccess implements PathAccessInterface
 {
-
     const PATH_SEPARATOR = '.';
+
+
+    /**
+     * Storage
+     *
+     * @var array
+     */
+    protected array $data = [];
+
+    /**
+     * The created from path
+     * Stores the path of the node that was created from
+     * 
+     * @var array
+     */
+    private array $createdFromPath = [];
+
 
     /**
      * Initialize the config
@@ -53,20 +70,7 @@ trait PathAccessTrait
      */
     public function jsonSerialize(int $flags = 0): mixed
     {
-        
         return json_encode($this->asArray(), $flags);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function reset(): static
-    {
-        $this->data = [];
-        $this->createdFromPath = [];
-        $this->cache = null;
-
-        return $this;
     }
 
     /**
@@ -95,26 +99,13 @@ trait PathAccessTrait
         return $this->hydrate($data);
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function setPathSeparator(string $separator): static
-    {
-        $this->pathsSeparator = $separator;
-
-        return $this;
-    }
-
 
     /**
      * {@inheritDoc}
      */
     public function withData(array $data): static
     {
-        $clone = clone $this;
-        $clone->reset()->hydrate($data);
-
-        return $clone;
+        return (new static())->hydrate($data);
     }
 
     /**
@@ -127,6 +118,8 @@ trait PathAccessTrait
 
     /**
      * {@inheritDoc}
+     * 
+      @todo: avoid to do references or not?
      */
     public function from(string $path): ?static
     {
@@ -134,7 +127,7 @@ trait PathAccessTrait
 
         if (!is_array($data)) {
             return null;
-            throw new \InvalidArgumentException('Data must be an array. Given Path: ' . $this->createPath(...$paths));
+            throw new \InvalidArgumentException('Data must be an array. Given Path: ' . $path);
         }
         
         $fromConfig = (new static())->hydrate($data);
@@ -152,85 +145,34 @@ trait PathAccessTrait
     /**
      * {@inheritDoc}
      */
-    public function getCreatedFromPath(): array
+    public function get(string $path = ''): mixed
     {
-        return $this->createdFromPath;
-    }
+        $reference = &$this->data;
 
-    // public function &getRef(string ...$paths)
-    // {
-    //     $path = $this->createPath(...$paths);
+        foreach ($this->splitPath($path) as $key) {
+            /**
+                @wtf first version was?
+             */
+            //if (!is_array($reference) || !array_key_exists($key, $reference)) {
+            if (is_array($reference) && !array_key_exists($key, $reference)) {
+                return null;
+            }
 
-    //     if ($this->getCache()->has($path)) {
-    //         return $this->getCache()->get($path);
-    //     }
-
-    //     $reference = &$this->data;
-
-    //     foreach ($this->splitPath($path) as $key) {
-    //         if (!is_array($reference) || !array_key_exists($key, $reference)) {
-    //             return null; 
-    //         }
-
-    //         $reference = &$reference[$key]; 
-    //     }
-
-    //     $this->getCache()->set($path, $reference);
-
-    //     return $reference;
-    // }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function get(string $path = '', mixed $default = null, bool $byRef = false): mixed
-    {
-        $value = $this->getRaw($path, $default, $byRef);
-        //$value = $this->getPluginManager()->process($path, $value);
-
-        return $value;
-    }
-
-    /**
-     * {@}
-     */
-    public function getRaw(string $path = '', mixed $default = null, bool $byRef = false): mixed
-    {
-        if ($this->getCache() && $this->getCache()->has($path)) {
-            return $this->getCache()->get($path);
+            $reference = &$reference[$key];
+            
+            if ($reference instanceof InterpolatorInterface) {
+                $reference = $reference($this);
+            }
         }
-
-        $reference = $this->getValueByPath($path, $this->data);
-
-        // $reference = &$this->data;
-
-        // foreach ($this->splitPath($path) as $key) {
-        //     if (!is_array($reference) || !array_key_exists($key, $reference)) {
-        //         $null = null;
-        //         return $null; 
-        //     }
-
-        //     $reference = &$reference[$key]; 
-        // }
 
         
-        if ($byRef) {
-            $value = &$reference;
-        } else {
-            $value = $reference;
-            //$value = is_array($reference) ? array_merge([], $reference) : $reference;
-        }
 
-        if ($this->getCache()) {
-            $this->getCache()->set($path, $value);
-        }
-
-        return $value ?? $default;
+        return $reference;
     }
 
-    protected function getValueByPath(string $path, array &$data): mixed
+    protected function &getRef(string $path = ''): mixed
     {
-        $reference = &$data;
+        $reference = &$this->data;
 
         foreach ($this->splitPath($path) as $key) {
             if (!is_array($reference) || !array_key_exists($key, $reference)) {
@@ -245,16 +187,9 @@ trait PathAccessTrait
 
     /**
      * {@inheritDoc}
+       @todo: fiind more faster way to do this
      */
     public function has(string $path): bool
-    {
-        return $this->_has($path);
-    }
-
-    /**
-     * @todo: implement more efficient has() method
-     */
-    protected function _has(string $path): bool
     {
         return null !== $this->get($path);
     }
@@ -264,11 +199,15 @@ trait PathAccessTrait
      */
     public function set(string $path, $value): static
     {
+        /**
+         * Set the value
+         */
         $keys = $this->splitPath($path);
         $lastKey = array_pop($keys);
         $reference = &$this->data;
         foreach ($keys as $key) {
             if (!is_array($reference)) {
+                //must be an array to continue
                 $reference = [];
             }
             if (!key_exists($key, $reference)) {
@@ -277,9 +216,10 @@ trait PathAccessTrait
             $reference = &$reference[$key];
         }
         $reference[$lastKey] = $value;
-        if ($this->getCache()) {
-            $this->getCache()->set($path, $value);
-        }
+
+        // if ($this->getCache()) {
+        //     $this->getCache()->set($path, $value);
+        // }
 
         return $this;
     }
@@ -320,16 +260,22 @@ trait PathAccessTrait
       @todo: improve this. 
     */
     public function merge(array|PathAccessInterface $data): static {
-        $source = $data instanceof PathAccessInterface ? $data->asArray() : $data;
-        $this->mergeArrays($this->data, $source); // Виклик без $this-> для статичного контексту
+
+        $source = $data instanceof PathAccessInterface 
+            ? $data->asArray() 
+            : $data;
+
+        $this->mergeArrays($this->data, $source);
+
         return $this;
     }
+
     protected function mergeArrays(array &$target, array $source): void {
         foreach ($source as $key => $value) {
             if (is_array($value) && array_key_exists($key, $target) && is_array($target[$key])) {
-                $this->mergeArrays($target[$key], $value); // Рекурсія для вкладених масивів
+                $this->mergeArrays($target[$key], $value); 
             } else {
-                $target[$key] = $value; // Пряме присвоєння
+                $target[$key] = $value;
             }
         }
     }

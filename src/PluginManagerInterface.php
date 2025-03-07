@@ -1,7 +1,8 @@
 <?php
-namespace Concept\Config\Plugin;
+namespace Concept\Config;
 
 use Concept\Config\ConfigInterface;
+use Concept\Config\Plugin\ConfigPluginInterface;
 
 interface PluginManagerInterface
 {

@@ -1,25 +1,63 @@
 <?php
 namespace Concept\Config\Adapter;
 
+use Concept\Config\Adapter\Facade\AggregateProcessor;
+use Concept\Config\Adapter\Processor\ProcessorAggregatorInterface;
 use Concept\Config\ConfigInterface;
 use Concept\Config\Exception\InvalidArgumentException;
+use Concept\Config\Interpolate\ContextInterpolator;
+use Concept\Config\Interpolate\ExpressionInterpolator;
+use Concept\Config\Interpolate\InterpolatorInterface;
+use Concept\Config\Interpolate\InterpolatorManager;
 
 class Adapter extends AbstractAdapter
 {
+    private $inteprolator;
 
-    private array $adapterCache = [];
+    public function __construct(private ConfigInterface $config) {
+        parent::__construct($config);
 
-    protected function  createAdapter(string $adapter): AdapterInterface
+        $this->inteprolator = new InterpolatorManager(
+            [
+                ContextInterpolator::class,
+                ExpressionInterpolator::class
+            ]
+        );
+    }
+
+    /**
+     * Adapter cache
+     * 
+     * @var array<string, AdapterInterface>
+     */
+    private static array $adapters = [];
+    private ?ProcessorAggregatorInterface $processor = null;
+
+    public function getProcessor(): ProcessorAggregatorInterface
     {
-        return new $adapter($this->getConfig());
+        if ($this->processor === null) {
+            $this->processor = AggregateProcessor::withConfig($this->getConfig());
+        }
+
+        return $this->processor;
     }
 
     /**
      * {@inheritDoc}
      */
-    public function import(mixed $source): array
+    public function import(mixed $source, bool $compile = true): array
     {
-        return $this->getAdapter($source)->import($source);
+        $data = $this->getAdapter($source)->import($source);
+
+        $this->inteprolator->apply($data, [
+            InterpolatorInterface::OPTIONS_SOURCE => $source,
+        ]);
+        
+        if ($compile) {
+            //$this->getProcessor()->process($data, $source);
+        }
+
+        return $data;
     }
 
     /**
@@ -32,6 +70,11 @@ class Adapter extends AbstractAdapter
         return true;
     }
 
+    protected function  createAdapter(string $adapter): AdapterInterface
+    {
+        return new $adapter($this->getConfig());
+    }
+
     /**
      * Get the adapter for the source
      * 
@@ -42,11 +85,16 @@ class Adapter extends AbstractAdapter
     {
         $adapterClass = $this->matchAdapter($target_or_source);
 
-        if (!isset($this->adapterCache[$adapterClass])) {
-            $this->adapterCache[$adapterClass] = $this->createAdapter($adapterClass);
+        return $this->createAdapter($adapterClass);
+
+        /**
+         @todo Cache the adapter: pass config to adapter
+         */
+        if (!isset(static::$adapters[$adapterClass])) {
+            static::$adapters[$adapterClass] = $this->createAdapter($adapterClass);
         }
 
-        return $this->adapterCache[$adapterClass];
+        return static::$adapters[$adapterClass];
     }
 
     
@@ -64,6 +112,7 @@ class Adapter extends AbstractAdapter
         return match(true) {
             is_array($target_or_source) => ArrayAdapter::class,
             is_object($target_or_source) && $target_or_source instanceof ConfigInterface => ConfigAdapter::class,
+            is_string($target_or_source) && preg_match('/composer\.json$/', $target_or_source) => ComposerAdapter::class,
             /**
              * File $target_or_source
              */
@@ -71,11 +120,13 @@ class Adapter extends AbstractAdapter
 
                 match(pathinfo($target_or_source, PATHINFO_EXTENSION)) {
                     'json' => JsonAdapter::class,
-                    'php' => PhpFileAdapter::class,
+                    'php' => PhpAdapter::class,
                     // 'xml' => XmlFileAdapter::class,
                     // 'yaml' => YamlFileAdapter::class,
                     // 'ini' => IniFileAdapter::class,
-                    default => throw new InvalidArgumentException('Unsupported file type:'.' '.pathinfo($source, PATHINFO_EXTENSION))
+                    default => throw new InvalidArgumentException(
+                        'Unsupported file type:'.' '.pathinfo($target_or_source, PATHINFO_EXTENSION)
+                        )
                 },
 
             //static::matchFileAdapter($source),

@@ -12,32 +12,8 @@ class JsonAdapter extends AbstractAdapter
      */
     public function import(mixed $source): array
     {
-        if (!is_string($source) || !is_file($source)) {
-            throw new InvalidArgumentException(
-                sprintf(
-                    'Invalid config source provided. Source (%s) is not a file',
-                    $source
-                )
-            );
-        }
-
-        try {
-            $json = file_get_contents($source);
-            $data = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
-
-        } catch (\Throwable $e) {
-            throw new InvalidArgumentException(
-                sprintf(
-                    "Unable to load file: %s (%s) ",
-                    $source,
-                    $e->getMessage()
-                )
-            );
-        }
-
+        return $this->readJson($source);
         //$this->getConfig()->hydrate($data);
-
-        return $data;
     }
 
     /**
@@ -55,6 +31,8 @@ class JsonAdapter extends AbstractAdapter
                 )
             );
         }
+
+        $this->ensureDirectoryExists($path);
 
         $data = $this->getConfig()->asArray();
 
@@ -84,4 +62,33 @@ class JsonAdapter extends AbstractAdapter
         return true;
     }
 
+    protected function readJson(string $path): array
+    {
+        try {
+            if (!is_string($path) || !is_file($path)) {
+                throw new InvalidArgumentException(
+                    sprintf(
+                        'Invalid config source provided. Source (%s) is not a file',
+                        $path
+                    )
+                );
+            }
+
+            $json = file_get_contents($path);
+            $data = json_decode($json, true, 512, JSON_THROW_ON_ERROR);
+
+            return $data;
+
+        } catch (\Throwable $e) {
+            throw new InvalidArgumentException(
+                sprintf(
+                    "Unable to load file: %s (%s) ",
+                    $path,
+                    $e->getMessage()
+                )
+            );
+        }
+
+        
+    }
 }

@@ -1,11 +1,16 @@
 {
-    "settings": {},
     "singularity": {
         "package": {
             "concept-labs/config": {
                 "preference": {
                     "Concept\\Config\\ConfigInterface": {
                         "class": "Concept\\Config\\Config"
+                    },
+                    "Concept\\Config\\Context\\ContextInterface": {
+                        "class": "Concept\\Config\\Context\\Context"
+                    },
+                    "Concept\\Config\\Adapter\\AdapterInterface": {
+                        "class": "Concept\\Config\\Adapter\\Adapter"
                     }
                 }
             }

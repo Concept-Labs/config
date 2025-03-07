@@ -4,16 +4,18 @@ namespace Concept\Config;
 use Concept\Config\Adapter\Adapter;
 use Psr\SimpleCache\CacheInterface;
 use Concept\Config\Adapter\AdapterInterface;
-use Concept\Config\Adapter\Export\ExportAdapter;
-use Concept\Config\PathAccess\PathAccessTrait;
-use Concept\Config\Plugin\Middleware\ContextVariablePlugin;
-use Concept\Config\Plugin\PluginManager;
-use Concept\Config\Plugin\PluginManagerInterface;
+use Concept\Config\Context\Context;
+use Concept\Config\Context\ContextInterface;
+use Concept\Config\PathAccess\PathAccess;
+use Concept\Config\PathAccess\PathAccessInterface;
+use Concept\Config\Plugin\ContextPlugin;
+use Concept\Config\Plugin\ReferencePlugin;
+use Concept\Config\Traits\PluginsTrait;
 use ReflectionClass;
 
-class Config implements ConfigInterface
+class Config extends PathAccess implements ConfigInterface
 {
-    use PathAccessTrait;
+    use PluginsTrait;
 
     /**
       @debug: remove
@@ -21,14 +23,7 @@ class Config implements ConfigInterface
     static $instances = [];
 
 
-    /**
-     * Storage
-     *
-     * @var array
-     */
-    protected array $data = [];
-
-    private array $context = [];
+    private ?PathAccessInterface $context = null;
 
     private ?PluginManagerInterface $pluginManager = null;
     private ?AdapterInterface $adapter = null;
@@ -49,15 +44,7 @@ class Config implements ConfigInterface
      */
     protected array $state = [];
 
-    /**
-     * The created from path
-     * Stores the path of the node that was created from
-     * 
-     * @var array
-     */
-    private array $createdFromPath = [];
-
-    private bool $isCompiled = false;
+    protected array $sourceStack = [];
 
     /**
      * Chache
@@ -81,67 +68,178 @@ class Config implements ConfigInterface
         /**
           @todo: think how to aggregate plugins
          */
-        $this->getPluginManager()->add(
-            new ContextVariablePlugin($this)
-        );
+        $this->getPluginManager()
+            ->add(new ContextPlugin($this))
+            ->add(new ReferencePlugin($this))
+            //->add(new ExpressionPlugin($this))
+            ;
 
     }
-
-    public function export(string $path): static
-    {
-        $this->compile();
-        $this->getAdapter()->export(
-            $path
-        );
-
-        return $this;
-    }
-
 
     /**
-     * {@inheritDoc}
+     * Get the plugin manager
+     * 
+     * @return PluginManagerInterface
      */
-    public function reset(): static
+    protected function getPluginManager(): PluginManagerInterface
     {
-        $this->data = [];
-        $this->state = [];
-        //$this->loaded = [];
-        return $this;
+        
+        return $this->pluginManager ??= (new PluginManager($this));
     }
 
+    public function getAdapter(): AdapterInterface
+    {
+        return $this->adapter ??= new Adapter($this);
+    }
     
     private function getCache(): ?CacheInterface
     {
-        
         return $this->cache;// ??= new LRUCache($this->cacheSize);
     }
 
     /**
      * {@inheritDoc}
      */
-    public function load(mixed $source, bool $merge = true): static
+    public function load(mixed $source, bool $preProcess = true): static
     {
-        
-        $data = $this->getAdapter()->import($source);
+        $data = $this->getAdapter()->import($source, $preProcess);
 
-        if ($merge) {
-            $this->merge($data);
-        } else {
-            $this->hydrate($data);
+        $this->hydrate($data);
+
+        if ($preProcess) {
+            //$this->processPlugins();
         }
 
-        //$this->getPluginManager()->afterLoad($source, $data);
-
         return $this;
     }
 
-    public function import(mixed $source): static
+    public function getSourceSatack(): array
     {
-        $this->load($source, false);
+        return $this->sourceStack;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function import(mixed $source, bool $preProcess = true): static
+    {
+        array_push($this->sourceStack, $source);
+
+        $data = $this->getAdapter()->import($source);
+
+        $this->merge($data);
+        
+        if ($preProcess) {
+            //$this->processPlugins();
+        }
+
+        array_pop($this->sourceStack);
 
         return $this;
     }
 
+    public function importTo(string $path, mixed $source, bool $preProcess = true): static
+    {
+        $data = $this->getAdapter()->import($source);
+
+        
+        $this->mergeTo($path, $data);
+        
+        if ($preProcess) {
+            //$this->processPlugins();
+        }
+        return $this;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function export(string $target, bool $preprocess = true): static
+    {
+        if ($preprocess) {
+            //$this->processPlugins();
+        }
+
+        $this->getAdapter()->export($target);
+
+        return $this;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function get(string $path = '', bool $forceProcess = false ): mixed
+    {
+        // if ($this->getCache() && $this->getCache()->has($path)) {
+        //     return $this->getCache()->get($path);
+        // }
+
+        
+
+        // if ($forceProcess || $this->isRuntimeProcess()) {
+        //     /**
+        //      @todo think about this. how to process the array values
+        //      */
+        //     if (is_array($value)) {
+        //         $this->processNode($value);
+        //     } else {
+        //         $value = $this->getPluginManager()->process($path, $value, $this);
+        //     }
+        // }
+
+        // if ($forceProcess || $this->isRuntimeProcess()) {
+        //     $this->processNode($path);
+        // }
+
+        $value = parent::get($path);
+
+        // if ($this->getCache()) {
+        //     $this->getCache()->set($path, $value);
+        // }
+
+        return $value;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getRaw(string $path = ''): mixed
+    {
+        return parent::get($path);
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * Process the value before setting it
+     */
+    public function set(string $path, $value): static
+    {
+        /**
+         * We have to process the value before setting it?
+         */
+        //$value = $this->getPluginManager()->process($path, $value, $this);
+
+        parent::set($path, $value);
+
+        return $this;
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * Merge context if the data is a ConfigInterface
+     */
+    public function merge(array|PathAccessInterface $data): static {
+
+        parent::merge($data);
+
+        if ($data instanceof ConfigInterface) {
+            $this->getContext()->merge($data->getContext());
+        }
+
+        return $this;
+    }
 
 
     /**
@@ -190,23 +288,19 @@ class Config implements ConfigInterface
         return $this;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function setContext(array $context): static
+    public function withContext(ContextInterface $context): static
     {
         $this->context = $context;
 
         return $this;
-    
     }
 
     /**
      * {@inheritDoc}
      */
-    public function addContext(array $context): static
+    public function addContext(array $data): static
     {
-        $this->context = array_merge($this->context, $context);
+        $this->getContext()->merge($data);
 
         return $this;
     }
@@ -214,16 +308,21 @@ class Config implements ConfigInterface
     /**
      * {@inheritDoc}
      */
-    public function getContext(?string $path = null): mixed
+    public function getContext(): ContextInterface
     {
-        if (null === $path) {
-            return $this->context;
-        }
-
-        return $this->context[$path] ?? null;
+        return $this->context ??= new Context();
     }
 
     /**
+     * Merge data
+     * 
+     * @param array $data
+     * 
+     * @return array
+     */
+   
+
+     /**
      * Get the static directory
      * 
      * @return string
@@ -237,71 +336,6 @@ class Config implements ConfigInterface
         return $this->staticDir = dirname((new ReflectionClass(get_called_class()))->getFileName());
     }
 
-    /**
-     * Get the plugin manager
-     * 
-     * @return PluginManagerInterface
-     */
-    protected function getPluginManager(): PluginManagerInterface
-    {
-        
-        return $this->pluginManager ??= (new PluginManager($this));//->setConfigInstance($this);
-    }
-
-    protected function getAdapter(): AdapterInterface
-    {
-        return $this->adapter ??= new Adapter($this);
-    }
-
-    /**
-     * Merge data
-     * 
-     * @param array $data
-     * 
-     * @return array
-     */
-    protected function compile(?string $path = null): static
-    {
-        if ($this->isCompiled) {
-            return $this;
-        }
-
-        $data = $this->data;
-
-        if (null !== $path) {
-            $data = $this->get($path);
-        }
-
-        $data = $this->compileNode($data);
-
-        $this->hydrate($data);
-
-        $this->isCompiled = true;
-
-        return $this;
-    }
-
-    /**
-     * Merge data
-     * 
-     * @param array $data
-     * 
-     * @return array
-     */
-    protected function compileNode(array $node): array
-    {
-        $data = [];
-
-        foreach ($node as $key => $value) {
-            if (is_array($value)) {
-                $data[$key] = $this->compileNode($value);
-            } else {
-                $data[$key] = $this->getPluginManager()->process($key, $value, $this);
-            }
-        }
-
-        return $data;
-    }
 
     /**
      * Autoload the config files
@@ -323,7 +357,7 @@ class Config implements ConfigInterface
     //         }
 
     //         foreach (glob($pattern) as $path) {
-    //             $this->load($path);
+    //             $this->import($path);
     //         }
             
     //     }

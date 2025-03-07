@@ -3,7 +3,7 @@ namespace Concept\Config\Adapter;
 
 use Concept\Config\Exception\InvalidArgumentException;
 
-class PhpFileAdapter extends AbstractAdapter
+class PhpAdapter extends AbstractAdapter
 {
     /**
      * {@inheritDoc}
@@ -12,7 +12,7 @@ class PhpFileAdapter extends AbstractAdapter
      */ 
     public function import(mixed $source): array
     {
-        if (is_string($source) || !is_file($source)) {
+        if (!is_string($source) || !is_file($source)) {
             throw new InvalidArgumentException('Invalid config source provided. Source is not a file');
         }
 
