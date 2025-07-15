@@ -1,5 +1,9 @@
 <?php
-namespace Concept\Config\Exception;
+namespace Concept\Config\exception;
 
-interface ConfigExceptionInterface extends \Throwable
-{}
+use Throwable;
+
+interface ConfigExceptionInterface extends Throwable
+{
+    
+}

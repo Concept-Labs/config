@@ -1,101 +1,39 @@
 <?php
+
 namespace Concept\Config;
 
-use Concept\Config\PathAccess\PathAccessInterface;
-use IteratorAggregate;
-use JsonSerializable;
+use Concept\Arrays\DotArray\DotArrayInterface;
+use Concept\Config\Context\ContextInterface;
+use Concept\Config\Parser\ParserInterface;
+use Concept\Config\Resource\ResourceInterface;
 
-interface ConfigInterface 
-    extends 
-        PathAccessInterface,
-        JsonSerializable,
-        IteratorAggregate
-
+interface ConfigInterface //extends DotArrayInterface
 {
-    /**
-     * @see PathhAccessInterfacevfor more methods
-     */
-     
-    /**
-     * Load the config from a source
-     * @todo: Add support for other formats
-     *
-     * @param string $source The source
-     *  Supported sources:
-     * - File path (json, php, [yaml: not yet])
-     @todo: Add support for other formats
-     * 
-     * @param bool $merge Merge the loaded config with the current config
-     * 
-     * 
-     * @return static
-     */
-    public function load(string $source, bool $merge = true): static;
 
-    /**
-     * Import the config from a source
-     *
-     * @param string $source The source
-     * 
-     * @return static
-     */
-    public function import(string $source): static;
+    public function toArray(): array;
 
-    /**
-     * Export the config to a file
-     *
-     * @param string $target The file path
-     * 
-     * @return static
-     */
+    public function dotArray(): DotArrayInterface;
+
+    public function get(string $key, mixed $default = null): mixed;
+
+    public function set(string $key, mixed $value): static;
+
+    public function has(string $key): bool;
+
+    public function load(string|array|ConfigInterface $source, bool $parse = false): static;
+
+    public function import(string|array|ConfigInterface $source, bool $parse = false): static;
+    public function importTo(string|array|ConfigInterface $source, string $path, bool $parse = false): static;
+
     public function export(string $target): static;
 
-    /**
-     * Set the context
-     *
-     * @param array $context The context
-     * 
-     * @return static
-     */
-    public function setContext(array $context): static;
+    public function withContext(ContextInterface|array $context): static;
 
-    /**
-     * Add to the context
-     *
-     * @param array $context The context
-     * 
-     * @return static
-     */
-    public function addContext(array $context): static;
+    public function getContext(): ContextInterface;
 
-    /**
-     * Get the context or a value from the context
-     * 
-     * @param string|null $path The path
-     *
-     * @return mixed The context or the value
-     */
-    public function getContext(?string $path = null): mixed;
+    public function getResource(): ResourceInterface;
 
-    /**
-     * Saves the current state  into stack
-     *
-     * @return void
-     */
-    public function pushState(): static;
-    
-    /**
-     * Restore previous state 
-     *
-     * @return void
-     */
-    public function popState(): static;
-
-    /**
-     * Restore the initial state
-     *
-     * @return void
-     */
-    public function resetState(): static;
-    
+    public function getParser(): ParserInterface;
+   
 }
+    

@@ -1,334 +1,275 @@
 <?php
+
 namespace Concept\Config;
 
-use Concept\Config\Adapter\Adapter;
-use Psr\SimpleCache\CacheInterface;
-use Concept\Config\Adapter\AdapterInterface;
-use Concept\Config\Adapter\Export\ExportAdapter;
-use Concept\Config\PathAccess\PathAccessTrait;
-use Concept\Config\Plugin\Middleware\ContextVariablePlugin;
-use Concept\Config\Plugin\PluginManager;
-use Concept\Config\Plugin\PluginManagerInterface;
-use ReflectionClass;
+use Concept\Arrays\DotArray\DotArrayInterface;
+use Concept\Arrays\RecursiveDotApi;
+use Concept\Config\Storage\Storage;
+use Concept\Config\Storage\StorageInterface;
+use Concept\Config\Context\ContextInterface;
+use Concept\Config\Context\Context;
+use Concept\Config\Resource\ResourceInterface;
+use Concept\Config\Resource\Resource;
+use Concept\Config\Parser\ParserInterface;
+use Concept\Config\Parser\ResolvableInterface;
+use Concept\Config\Parser\Parser;
+use Concept\Config\Parser\Plugin\ConfigValuePlugin;
+use Concept\Config\Parser\Plugin\ContextPlugin;
+use Concept\Config\Parser\Plugin\Expression\EnvPlugin;
+use Concept\Config\Parser\Plugin\Expression\ReferencePlugin;
+use Concept\Config\Parser\Plugin\IncludePlugin;
+use Concept\Config\Parser\Plugin\Directive\ImportPlugin;
 
 class Config implements ConfigInterface
 {
-    use PathAccessTrait;
 
     /**
-      @debug: remove
-     */
-    static $instances = [];
-
-
-    /**
-     * Storage
-     *
-     * @var array
-     */
-    protected array $data = [];
-
-    private array $context = [];
-
-    private ?PluginManagerInterface $pluginManager = null;
-    private ?AdapterInterface $adapter = null;
-
-    //protected array $loaded = [];
-
-    private ?string $staticDir = null;
-
-
-    protected ?CacheInterface $cache = null;
-    protected int $cacheSize = 1000;
-
-    /**
-     * States backup stack.
-     * @todo: save to file/db etc.
-     *
-     * @var array<array>
-     */
-    protected array $state = [];
-
-    /**
-     * The created from path
-     * Stores the path of the node that was created from
+     * The storage
      * 
-     * @var array
+     * @var StorageInterface
      */
-    private array $createdFromPath = [];
-
-    private bool $isCompiled = false;
+    private StorageInterface $configStorage;
 
     /**
-     * Chache
+     * The context
      * 
-     * @var array
+     * @var ContextInterface
      */
-    //protected array $cache = [];
+    private ?ContextInterface $context = null;
 
-    public function __construct(
-        array $data = []
-        //private AdapterIterface $adapter, ?CacheInterface $cache = null
-    )
+    /**
+     * The resource
+     * 
+     * @var ResourceInterface
+     */
+    private ?ResourceInterface $resource = null;
+
+    /**
+     * The parser
+     * 
+     * @var ParserInterface
+     */
+    private ?ParserInterface $parser = null;
+
+    /**
+     * Constructor
+     * 
+     * @param array $data
+     * @param array $context
+     */
+    public function __construct(array $data = [], array $context = [])
     {
-        $this->data = $data;
-        /**
-         @todo remove debug
-         */
-        static::$instances[] = \WeakReference::create($this);
+        $this->configStorage = new Storage($data);
+        $this->context = (new Context($context))->withEnv(getenv());
 
-
-        /**
-          @todo: think how to aggregate plugins
-         */
-        $this->getPluginManager()->add(
-            new ContextVariablePlugin($this)
-        );
-
+        $this->init();
     }
 
-    public function export(string $path): static
+    public function hydrate(array $data): static
     {
-        $this->compile();
-        $this->getAdapter()->export(
-            $path
+        $this->getStorage()->hydrate($data);
+
+        return $this;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function withContext(ContextInterface|array $context): static
+    {
+        $this->getContext()->replace(
+            ($context instanceof ContextInterface)
+                ? $context->toArray()
+                : $context
         );
 
         return $this;
     }
 
-
     /**
      * {@inheritDoc}
      */
-    public function reset(): static
+    public function toArray(): array
     {
-        $this->data = [];
-        $this->state = [];
-        //$this->loaded = [];
-        return $this;
-    }
-
-    
-    private function getCache(): ?CacheInterface
-    {
-        
-        return $this->cache;// ??= new LRUCache($this->cacheSize);
+        return $this->getStorage()->toArray();
     }
 
     /**
      * {@inheritDoc}
      */
-    public function load(mixed $source, bool $merge = true): static
+    public function dotArray(): DotArrayInterface
     {
-        
-        $data = $this->getAdapter()->import($source);
-
-        if ($merge) {
-            $this->merge($data);
-        } else {
-            $this->hydrate($data);
-        }
-
-        //$this->getPluginManager()->afterLoad($source, $data);
-
-        return $this;
+        return $this->getStorage();
     }
-
-    public function import(mixed $source): static
-    {
-        $this->load($source, false);
-
-        return $this;
-    }
-
-
 
     /**
-     * Check if the config file is already loaded
+     * Get the storage
      * 
-     * @param string $path
-     * 
-     * @return bool
+     * @return StorageInterface
      */
-    // protected function isLoaded(string $path): bool
-    // {
-    //     return in_array($path, $this->loaded);
-    // }
-
-     /**
-     * {@inheritDoc}
-     */
-    public function pushState(): static
+    protected function getStorage(): StorageInterface
     {
-        array_push($this->state, $this->data);
-
-        return $this;
+        return $this->configStorage;
     }
 
     /**
-     * {@inheritDoc}
-     */
-    public function popState(): static
-    {
-        if (null !== $state = array_pop($this->state)) {
-            $this->data = $state;
-        }
-
-        return $this;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function resetState(): static
-    {
-        while (null !== $state = array_pop($this->state)) {
-            $this->data = $state;
-        }
-
-        return $this;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function setContext(array $context): static
-    {
-        $this->context = $context;
-
-        return $this;
-    
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function addContext(array $context): static
-    {
-        $this->context = array_merge($this->context, $context);
-
-        return $this;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getContext(?string $path = null): mixed
-    {
-        if (null === $path) {
-            return $this->context;
-        }
-
-        return $this->context[$path] ?? null;
-    }
-
-    /**
-     * Get the static directory
-     * 
-     * @return string
-     */
-    protected function staticDir(): string
-    {
-        if (null !== $this->staticDir) {
-            return $this->staticDir;
-        }
-        
-        return $this->staticDir = dirname((new ReflectionClass(get_called_class()))->getFileName());
-    }
-
-    /**
-     * Get the plugin manager
-     * 
-     * @return PluginManagerInterface
-     */
-    protected function getPluginManager(): PluginManagerInterface
-    {
-        
-        return $this->pluginManager ??= (new PluginManager($this));//->setConfigInstance($this);
-    }
-
-    protected function getAdapter(): AdapterInterface
-    {
-        return $this->adapter ??= new Adapter($this);
-    }
-
-    /**
-     * Merge data
-     * 
-     * @param array $data
-     * 
-     * @return array
-     */
-    protected function compile(?string $path = null): static
-    {
-        if ($this->isCompiled) {
-            return $this;
-        }
-
-        $data = $this->data;
-
-        if (null !== $path) {
-            $data = $this->get($path);
-        }
-
-        $data = $this->compileNode($data);
-
-        $this->hydrate($data);
-
-        $this->isCompiled = true;
-
-        return $this;
-    }
-
-    /**
-     * Merge data
-     * 
-     * @param array $data
-     * 
-     * @return array
-     */
-    protected function compileNode(array $node): array
-    {
-        $data = [];
-
-        foreach ($node as $key => $value) {
-            if (is_array($value)) {
-                $data[$key] = $this->compileNode($value);
-            } else {
-                $data[$key] = $this->getPluginManager()->process($key, $value, $this);
-            }
-        }
-
-        return $data;
-    }
-
-    /**
-     * Autoload the config files
-     * 
-     * @param string[] $autoloads
-     * @param string $basePath
+     * Initialize the config
      * 
      * @return static
      */
-    // protected function autoload(array $autoloads, string $basePath): static
-    // {
-    //     foreach ($autoloads as $pattern) {
+    protected function init(): static
+    {
+        return $this;
+    }
 
-    //         if (strpos($pattern, DIRECTORY_SEPARATOR) !== 0) {
-    //             /**
-    //              * Prepend the base path if the pattern is not absolute
-    //              */
-    //             $pattern = $basePath . DIRECTORY_SEPARATOR . $pattern;
-    //         }
+    
+    
 
-    //         foreach (glob($pattern) as $path) {
-    //             $this->load($path);
-    //         }
-            
-    //     }
+    /**
+     * {@inheritDoc}
+     */
+    public function &get(string $path, mixed $default = null): mixed
+    {
+        $current = &$this->getStorage()->reference();
 
-    //     return $this;
-    // }
+        foreach (RecursiveDotApi::path($path) as $key) {
 
+            if (!is_array($current) || !array_key_exists($key, $current)) {
+                $defaultValue = $default;
+                return $defaultValue;
+            }
+
+            $current = &$current[$key];
+
+            while ($current instanceof ResolvableInterface) {
+                $current = $current();
+            }
+        }
+
+        return $current;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function set(string $path, mixed $value): static
+    {
+        $this->getStorage()->set($path, $value);
+
+        return $this;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function has(string $path): bool
+    {
+        return $this->getStorage()->has($path);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function load(string|array|ConfigInterface $source, bool $parse = false): static
+    {
+        if ($source instanceof ConfigInterface) {
+            $source = $source->toArray();
+        }
+
+        $this->getStorage()->reset();
+
+        $this->getResource()->read(
+            $this->getStorage()->reference(),
+            $source, 
+            $parse
+        );
+
+        return $this;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function import(string|array|ConfigInterface $source, bool $parse = false): static
+    {
+        if ($source instanceof ConfigInterface) {
+            $source = $source->toArray();
+        }
+
+        $importData = [];
+
+        $this->getResource()->read($importData, $source, $parse);
+
+        $this->getStorage()->replace($importData);
+
+        return $this;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function importTo(string|array|ConfigInterface $source, string $path, bool $parse = false): static
+    {
+        if ($source instanceof ConfigInterface) {
+            $source = $source->toArray();
+        }
+
+        $importData = [];
+
+        $this->getResource()->read($importData, $source, $parse);
+
+        $this->getStorage()->replace($importData, $path);
+
+        return $this;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function export(string $target): static
+    {
+        $this->getResource()
+            ->write(
+                $target, $this->getStorage()->toArray()
+            );
+
+        return $this;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getContext(): ContextInterface
+    {
+        return $this->context;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getResource(): ResourceInterface
+    {
+        return $this->resource ??= new Resource($this);
+    }
+
+    /**
+     @todo: implement parser factory and move the plugin registration there
+     * {@inheritDoc}
+     */
+    public function getParser(): ParserInterface
+    {
+        if (!$this->parser instanceof ParserInterface) {
+            $this->parser = (new Parser($this))
+                ->registerPlugin(EnvPlugin::class, 999)
+                ->registerPlugin(ContextPlugin::class, 998)
+                ->registerPlugin(IncludePlugin::class, 997)
+                ->registerPlugin(ImportPlugin::class, 996)
+                ->registerPlugin(ReferencePlugin::class, 995)
+                ->registerPlugin(ConfigValuePlugin::class, 994)
+            ;
+        }
+
+        return $this->parser;
+    }
 }
+
