@@ -13,6 +13,7 @@ use Concept\Config\Resource\Resource;
 use Concept\Config\Parser\ParserInterface;
 use Concept\Config\Parser\ResolvableInterface;
 use Concept\Config\Parser\Parser;
+use Concept\Config\Parser\ParserFactory;
 use Concept\Config\Parser\Plugin\ConfigValuePlugin;
 use Concept\Config\Parser\Plugin\ContextPlugin;
 use Concept\Config\Parser\Plugin\Expression\EnvPlugin;
@@ -253,23 +254,12 @@ class Config implements ConfigInterface
     }
 
     /**
-     @todo: implement parser factory and move the plugin registration there
      * {@inheritDoc}
      */
     public function getParser(): ParserInterface
     {
-        if (!$this->parser instanceof ParserInterface) {
-            $this->parser = (new Parser($this))
-                ->registerPlugin(EnvPlugin::class, 999)
-                ->registerPlugin(ContextPlugin::class, 998)
-                ->registerPlugin(IncludePlugin::class, 997)
-                ->registerPlugin(ImportPlugin::class, 996)
-                ->registerPlugin(ReferencePlugin::class, 995)
-                ->registerPlugin(ConfigValuePlugin::class, 994)
-            ;
-        }
-
-        return $this->parser;
+        
+        return $this->parser ??= ParserFactory::create($this);
     }
 }
 
