@@ -39,10 +39,7 @@ interface ParserInterface
      * 
      * @return static
      */
-    public function registerPlugin(
-        PluginInterface|callable $plugin, 
-        int $priority = 0
-    ): static;
+    public function registerPlugin(PluginInterface|callable $plugin, int $priority = 0): static;
 
     /**
      * Get a plugin by name

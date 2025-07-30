@@ -29,6 +29,14 @@ interface ConfigurableInterface
      */
     public function getConfig(): ?ConfigInterface;
 
+
+    /**
+     * Check if config is set.
+     *
+     * @return bool
+     */
+    public function hasConfig(): bool;
+
     /**
      * Configure the instance with the given config.
      *

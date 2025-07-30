@@ -12,14 +12,7 @@ use Concept\Config\Resource\ResourceInterface;
 use Concept\Config\Resource\Resource;
 use Concept\Config\Parser\ParserInterface;
 use Concept\Config\Parser\ResolvableInterface;
-use Concept\Config\Parser\Parser;
 use Concept\Config\Parser\ParserFactory;
-use Concept\Config\Parser\Plugin\ConfigValuePlugin;
-use Concept\Config\Parser\Plugin\ContextPlugin;
-use Concept\Config\Parser\Plugin\Expression\EnvPlugin;
-use Concept\Config\Parser\Plugin\Expression\ReferencePlugin;
-use Concept\Config\Parser\Plugin\IncludePlugin;
-use Concept\Config\Parser\Plugin\Directive\ImportPlugin;
 
 class Config implements ConfigInterface
 {
@@ -66,6 +59,25 @@ class Config implements ConfigInterface
         $this->init();
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    public static function fromArray(array $data, array $context = []): static
+    {
+        return new static($data, $context);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function &dataReference(): array
+    {
+        return $this->getStorage()->reference();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     public function hydrate(array $data): static
     {
         $this->getStorage()->hydrate($data);
@@ -86,7 +98,7 @@ class Config implements ConfigInterface
 
         return $this;
     }
-
+    
     /**
      * {@inheritDoc}
      */
@@ -123,7 +135,15 @@ class Config implements ConfigInterface
         return $this;
     }
 
-    
+    /**
+     * {@inheritDoc}
+     */
+    public function node(string $path, bool $copy = true): static
+    {
+        $dotNode = $this->getStorage()->node($path, $copy);
+
+        return new static($dotNode->toArray(), $this->getContext()->toArray());
+    }
     
 
     /**
@@ -258,8 +278,15 @@ class Config implements ConfigInterface
      */
     public function getParser(): ParserInterface
     {
-        
         return $this->parser ??= ParserFactory::create($this);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getIterator(): \Traversable
+    {
+        return $this->getStorage()->getIterator();
     }
 }
 

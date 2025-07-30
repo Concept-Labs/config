@@ -19,7 +19,28 @@ class JsonAdapter implements AdapterInterface
      */
     public function read(string $uri): array
     {
-        return $this->decode(file_get_contents($uri));
+        $data = [];
+        foreach (glob($uri) as $file) {
+
+            $content = file_get_contents($file);
+
+            if (!$content) {
+                throw new \RuntimeException("Could not read file: $file");
+            }
+
+            $contentData = $this->decode($content);
+            $priority = $contentData['priority'] ?? 0;
+            $data[$priority][] = $contentData;
+        }
+
+        ksort($data);
+
+        // Merge all arrays into one
+        foreach ($data as $priority => $contentArray) {
+            $finalData = array_merge_recursive($finalData ?? [], ...$contentArray);
+        }
+
+        return $finalData ?? [];
     }
 
     /**

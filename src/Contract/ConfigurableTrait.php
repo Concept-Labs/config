@@ -29,4 +29,14 @@ trait ConfigurableTrait
     {
         return $this->___config;
     }
+
+    /**
+     * Check if config is set
+     *
+     * @return bool
+     */
+    public function hasConfig(): bool
+    {
+        return $this->___config !== null;
+    }
 }
