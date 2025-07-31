@@ -12,6 +12,13 @@ interface ConfigInterface extends IteratorAggregate //, DotArrayInterface
 {
 
     /**
+     * Reset the configuration to its initial state
+     *
+     * @return static
+     */
+    public function reset(): static;
+
+    /**
      * Create a new Config instance from an array
      *
      * @param array $data

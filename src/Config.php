@@ -59,6 +59,24 @@ class Config implements ConfigInterface
         $this->init();
     }
 
+    public function __clone()
+    {
+        $this->configStorage = clone $this->configStorage;
+        $this->context = clone $this->context;
+        $this->resource = null; // Reset resource to ensure a new instance is created
+        $this->parser = null; // Reset parser to ensure a new instance is created
+    }
+
+    public function reset(): static
+    {
+        $this->configStorage->reset();
+        $this->context = new Context();
+        $this->resource = null;
+        $this->parser = null;
+
+        return $this;
+    }
+
     /**
      * {@inheritDoc}
      */
