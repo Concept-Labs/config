@@ -28,7 +28,11 @@ class JsonAdapter implements AdapterInterface
                 throw new \RuntimeException("Could not read file: $file");
             }
 
+            try {
             $contentData = $this->decode($content);
+            } catch (\JsonException $e) {
+                throw new \RuntimeException("Invalid JSON in file: $file", 0, $e);
+            }
             $priority = $contentData['priority'] ?? 0;
             $data[$priority][] = $contentData;
         }

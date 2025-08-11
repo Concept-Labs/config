@@ -25,8 +25,12 @@ trait ConfigurableTrait
      * @return ConfigInterface|null
      * @throws \LogicException if config is not set
      */
-    public function getConfig(): ?ConfigInterface
+    public function getConfig(): ConfigInterface
     {
+        if ($this->___config === null) {
+            throw new \LogicException('Config is not set.');
+        }
+        
         return $this->___config;
     }
 
