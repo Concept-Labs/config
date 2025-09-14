@@ -43,10 +43,10 @@ class ContextPlugin extends AbstractPlugin
     public function __invoke(mixed $value, string $path, array &$subjectData, callable $next): mixed
     {
         if (is_string($value) && $this->match($value)) {
-            while ($this->match($value)) {   
+            while ($this->match($value)) { //replace all matches
                 $value = preg_replace_callback(
                     static::PATTERN,
-                    fn ($matches) => $this->getContextValue($matches[1]) 
+                    fn ($matches) => $this->getContextValue($matches[1])
                         ?? str_replace('$', '$!', $matches[0]),
                     $value
                 );

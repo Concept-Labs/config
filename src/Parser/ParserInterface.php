@@ -17,7 +17,22 @@ interface ParserInterface
      */
     public function parse(array &$data, bool $resolveNow = true): static;
 
+    /**
+     * Prepare the data for parsing
+     * 
+     * @param array &$data The data to prepare
+     * 
+     * @return static
+     */
     public function prepare(array &$data): static;
+
+    /**
+     * Resolve the data
+     * 
+     * @param array &$data The data to resolve
+     * 
+     * @return static
+     */
     public function resolve(array &$data): static;
 
 

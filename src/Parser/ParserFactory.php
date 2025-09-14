@@ -22,14 +22,14 @@ class ParserFactory
     public static function create(ConfigInterface $config): ParserInterface
     {
         return (new Parser($config))
-                ->registerPlugin(CommentPlugin::class, 996)
-                ->registerPlugin(EnvPlugin::class, 999)
-                ->registerPlugin(ContextPlugin::class, 998)
-                ->registerPlugin(IncludePlugin::class, 997)
-                ->registerPlugin(ImportPlugin::class, 996)
-                ->registerPlugin(ReferencePlugin::class, 995)
-                ->registerPlugin(ConfigValuePlugin::class, 994)
-                ->registerPlugin(ComposerPlugin::class, 993)
+                // ->registerPlugin(CommentPlugin::class, 996)
+                // ->registerPlugin(EnvPlugin::class, 999)
+                // ->registerPlugin(ContextPlugin::class, 998)
+                // ->registerPlugin(IncludePlugin::class, 997)
+                // ->registerPlugin(ImportPlugin::class, 996)
+                // ->registerPlugin(ReferencePlugin::class, 995)
+                // ->registerPlugin(ConfigValuePlugin::class, 994)
+                // ->registerPlugin(ComposerPlugin::class, 993)
                 
             ;
     }

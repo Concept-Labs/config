@@ -2,10 +2,10 @@
 
 namespace Concept\Config\Resource;
 
-use Concept\Config\Parser\ParserInterface;
-use Concept\Config\Resource\Exception\InvalidArgumentException;
 use Concept\Arrays\RecursiveDotApi;
 use Concept\Config\ConfigInterface;
+use Concept\Config\Parser\ParserInterface;
+use Concept\Config\Resource\Exception\InvalidArgumentException;
 use Concept\Config\Resource\Adapter\JsonAdapter;
 use Concept\Config\Resource\Adapter\PhpAdapter;
 use Throwable;
@@ -16,12 +16,22 @@ class Resource implements ResourceInterface
 
     private ?AdapterManagerInterface $adapterManager = null;
 
+    /**
+     * Dependency injection
+     * 
+     * @param ConfigInterface $config
+     */
     public function __construct(private ConfigInterface $config)
     {
+        /**
+         @todo: create adapters configuration to be able to register adapters dynamically
+         */
         $this->adapterManager = 
             (new AdapterManager())
                 ->registerAdapter(JsonAdapter::class)
                 ->registerAdapter(PhpAdapter::class)
+                //->registerAdapter(YamlAdapter::class)
+                //->registerAdapter(IniAdapter::class)
         ;
     }
 
@@ -62,18 +72,36 @@ class Resource implements ResourceInterface
 
         } 
 
+        /**
+         * Handle URL fragments for nested imports
+         */
         $fragment = parse_url($source, PHP_URL_FRAGMENT);
+
+        /**
+         * Get the absolute path of the source
+         */
         $source = $this->absolutePath(strtok($source, '#'));
 
+        /**
+         * Detect circular references
+         */
         if ($this->hasSource($source)) {
             throw new InvalidArgumentException('Circular reference detected');
         }
 
+        /**
+         * Push the source to the stack
+         */
         $this->pushSource($source);
+
         try {
+            /**
+             * Read the source using the appropriate adapter
+             */
             $data = $this
                 ->getAdapter($source)
                 ->read($source);
+
         } catch (Throwable $e) {
             throw new InvalidArgumentException(
                 sprintf(
@@ -85,11 +113,20 @@ class Resource implements ResourceInterface
         }
 
         if ($withParser && $this->getParser()) {
+            /**
+             * Parse the data using the configured parser
+             */
             $this->getParser()->parse($data);
         }
 
+        /**
+         * Pop the last source
+         */
         $this->popSource();
 
+        /**
+         * If a fragment is specified, extract that part of the data
+         */
         if ($fragment) {
             $data = RecursiveDotApi::get($data, $fragment);
         }
@@ -199,6 +236,8 @@ class Resource implements ResourceInterface
      */
     protected function lastSource(): string
     {
-        return end($this->sourceStack) ?: '';
+        return $this->sourceStack[count($this->sourceStack) - 1] ?? '';
+
+        //return end($this->sourceStack) ?: '';
     }
 }

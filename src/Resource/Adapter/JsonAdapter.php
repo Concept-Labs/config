@@ -20,7 +20,12 @@ class JsonAdapter implements AdapterInterface
     public function read(string $uri): array
     {
         $data = [];
-        foreach (glob($uri) as $file) {
+        $files = glob($uri);
+        if (empty($files)) {
+            throw new \RuntimeException("No files found for pattern: $uri");
+        }
+        
+        foreach ($files as $file) {
 
             $content = file_get_contents($file);
 

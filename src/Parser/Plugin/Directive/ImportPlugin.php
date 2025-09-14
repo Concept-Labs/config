@@ -56,7 +56,9 @@ class ImportPlugin extends AbstractPlugin
     {
         if ($this->match($path)) {
 
-            $mode = explode(':', $path)[1] ?? RecursiveApi::MERGE_COMBINE; // default mode: combine values will add new values and overwrite existing ones
+            //$mode = explode(':', $path)[1] ?? RecursiveApi::MERGE_COMBINE; 
+            //$mode = explode(':', $path)[1] ?? RecursiveApi::MERGE_OVERWRITE; 
+            $mode = explode(':', $path)[1] ?? RecursiveApi::MERGE_PRESERVE;
 
             foreach (is_array($value) ? $value : [$value] as $import) {
                 RecursiveDotApi::merge(
@@ -67,7 +69,8 @@ class ImportPlugin extends AbstractPlugin
                 );
             }
             //remove the import directive
-            unset($subjectData[$path]);
+            RecursiveDotApi::unset($subjectData, $path);
+            //unset($subjectData[$path]);
             //let the parser know that the value has been removed
             return ParserInterface::VALUE_TO_REMOVE;
         }
@@ -86,8 +89,14 @@ class ImportPlugin extends AbstractPlugin
         $data = [];
 
         $parsed = parse_url($source);
+
         if (!isset($parsed['scheme'])) {
+            
+            $o = $source;
             $source = glob($source, GLOB_BRACE);
+            if (empty($source)) {
+                trigger_error("No files found for pattern: $o", E_USER_NOTICE);
+            }
         }
 
         foreach (is_array($source) ? $source : [$source] as $src) {
@@ -102,7 +111,9 @@ class ImportPlugin extends AbstractPlugin
                 $data, 
                 $d, 
                 null, 
-                RecursiveApi::MERGE_COMBINE // default mode: combine values. will add new values and overwrite existing ones
+                //RecursiveApi::MERGE_COMBINE 
+                //RecursiveApi::MERGE_OVERWRITE 
+                RecursiveApi::MERGE_PRESERVE 
             );
             
         }

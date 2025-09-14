@@ -23,7 +23,7 @@ class PhpAdapter implements AdapterInterface
         $data = require $uri;
 
         if (!is_array($data)) {
-            throw new InvalidArgumentException('Invalid data');
+            throw new InvalidArgumentException('Invalid data at ' . $uri . '. Expected an array.');
         }
 
         return $data;

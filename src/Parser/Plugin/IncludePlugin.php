@@ -57,7 +57,9 @@ class IncludePlugin extends AbstractPlugin
     protected function getIncludeData(mixed $source)//: ?array
     {
         $data = [];
+
         $this->getResource()->read($data, $source);
+
 
         return $data;
     }

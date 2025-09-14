@@ -18,9 +18,10 @@ class ReferencePlugin extends AbstractPlugin
     }
 
     /**
+     * Replace @ref(...) with the corresponding reference.
+     * 
      * {@inheritDoc}
      * 
-     * Replace @env(...) with the corresponding environment variable.
      */
     public function __invoke(mixed $value, string $path, array &$subjectData, callable $next): mixed
     {

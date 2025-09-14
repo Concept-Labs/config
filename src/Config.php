@@ -180,6 +180,9 @@ class Config implements ConfigInterface
 
             $current = &$current[$key];
 
+            /**
+             * If the current value is a ResolvableInterface, resolve it
+             */
             while ($current instanceof ResolvableInterface) {
                 $current = $current();
             }

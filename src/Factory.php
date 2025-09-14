@@ -8,11 +8,29 @@ use Concept\Config\Context\ContextInterface;
 
 class Factory
 {
+    private ?string $configClass = null;
     private ?ContextInterface $context = null;
     private array $sources = [];
     private array $configOverrides = [];
     private array $plugins = [];
     private bool $doParse = true;
+
+    /**
+     * Constructor
+     *
+     * @param string|null $configClass
+     */
+    public function __construct(?string $configClass = null)
+    {
+        if ($configClass !== null && !is_a($configClass, ConfigInterface::class, true)) {
+            throw new \InvalidArgumentException(sprintf(
+                'Config class must implement %s interface.',
+                ConfigInterface::class
+            ));
+        }
+
+        $this->configClass = $configClass;
+    }
 
     /**
      * Reset the factory to its initial state
@@ -37,7 +55,7 @@ class Factory
      */
     public function create(): ConfigInterface
     {
-        $config = new Config();
+        $config = $this->configClass ? new ($this->configClass)() : new Config();
 
         $config->withContext($this->getContext());
 
