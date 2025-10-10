@@ -197,7 +197,7 @@ The Facade automatically includes these plugins:
 | Plugin | Priority | Purpose | Example |
 |--------|----------|---------|---------|
 | EnvPlugin | 999 | Environment variables | `@env(DB_HOST)` |
-| ContextPlugin | 998 | Context values | `@context.region` |
+| ContextPlugin | 998 | Context values | `${region}` |
 | IncludePlugin | 997 | Include file content | `@include(file.json)` |
 | ImportPlugin | 996 | Import & merge configs | `{"@import": "db.json"}` |
 | ReferencePlugin | 995 | Internal references | `@database.host` |
