@@ -297,13 +297,13 @@ $config->import('config/additional.json', parse: true);
 
 ## Exporting Configuration
 
-Export your configuration to a file:
+Export your configuration to a file. The output format is automatically detected based on the file extension:
 
 ```php
-// Export to JSON
+// Export to JSON (format auto-detected from .json extension)
 $config->export('output/config.json');
 
-// Export to PHP
+// Export to PHP array (format auto-detected from .php extension)
 $config->export('output/config.php');
 ```
 

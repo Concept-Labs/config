@@ -129,6 +129,16 @@ if ($context->has('app')) {
 
 ## Variable Resolution
 
+The configuration system supports three types of variable resolution, each with its own syntax:
+
+| Type | Syntax | Purpose | Example |
+|------|--------|---------|---------|
+| Environment Variables | `@env(VAR)` | Access system environment variables | `@env(DB_HOST)` |
+| Config References | `@path.to.value` | Reference other configuration values | `@database.host` |
+| Context Variables | `${var}` | Access context data | `${region}` or `${user.name}` |
+
+**Important**: Do not confuse the syntaxes! Context variables use `${...}`, NOT `@context.path`.
+
 ### Environment Variables
 
 **Syntax**: `@env(VARIABLE_NAME)`

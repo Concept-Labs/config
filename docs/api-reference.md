@@ -204,15 +204,23 @@ $config->importTo('db.json', 'database', parse: true);
 
 #### `export(string $target): static`
 
-Export configuration to a file.
+Export configuration to a file. The output format is automatically detected based on the file extension using the Resource adapter system.
 
 **Parameters**:
-- `$target` - Target file path
+- `$target` - Target file path (format determined by extension: .json, .php, etc.)
 
 **Returns**: Self for chaining
 
+**Supported Formats**:
+- `.json` - JSON format (via JsonAdapter)
+- `.php` - PHP array format (via PhpAdapter)
+
 ```php
+// Export to JSON
 $config->export('output/config.json');
+
+// Export to PHP
+$config->export('output/config.php');
 ```
 
 ---
@@ -450,10 +458,14 @@ $config = $factory->create();
 
 #### `export(string $target): static`
 
-Export configuration to file.
+Export configuration to file. The output format is automatically detected based on the file extension.
 
 ```php
+// Export to JSON
 $factory->export('output.json');
+
+// Export to PHP
+$factory->export('output.php');
 ```
 
 ---
