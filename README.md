@@ -15,6 +15,7 @@ A powerful, flexible, and extensible configuration management library for PHP 8.
 - **Context Management**: Flexible context for runtime variable resolution
 - **Lazy Resolution**: Efficient lazy evaluation of configuration values
 - **Factory Pattern**: Multiple factory methods for different use cases
+- **Facade Interface**: Simplified configuration creation with pre-configured plugins
 - **Type Safe**: Full PHP 8.2+ type hints and strict typing
 
 ## 📦 Installation
@@ -61,6 +62,14 @@ if ($config->has('app.debug')) {
 ### Loading from Files
 
 ```php
+use Concept\Config\Facade\Config;
+
+// Use the Facade for fully-featured configuration with all plugins pre-configured
+$config = Config::config('config/app.json', context: [
+    'ENV' => getenv()
+]);
+
+// Or use the direct class
 use Concept\Config\Config;
 
 // Load from a JSON file
@@ -136,18 +145,63 @@ $config->getParser()->registerPlugin(MyCustomPlugin::class, priority: 100);
 Multiple ways to create configurations:
 
 ```php
+// Facade - Simplified interface with pre-configured plugins
+use Concept\Config\Facade\Config;
+
+$config = Config::config('config/*.json', context: [
+    'env' => 'production',
+    'ENV' => getenv()
+]);
+
 // Static factory
+use Concept\Config\StaticFactory;
+
 $config = StaticFactory::create(['key' => 'value']);
 $config = StaticFactory::fromFile('config.json');
 $config = StaticFactory::fromGlob('config/*.json');
 
 // Builder factory
+use Concept\Config\Factory;
+
 $config = (new Factory())
     ->withFile('config/app.json')
     ->withFile('config/database.json')
     ->withContext(['env' => 'production'])
     ->create();
 ```
+
+### The Facade Interface
+
+The `Concept\Config\Facade\Config` class provides a simplified, opinionated way to create configurations with all essential plugins pre-configured and ready to use.
+
+```php
+use Concept\Config\Facade\Config;
+
+// Create config from file(s) with all plugins enabled
+$config = Config::config(
+    source: 'config/*.json',           // File path or glob pattern
+    context: ['env' => 'production'],  // Optional context variables
+    overrides: ['debug' => false]      // Optional configuration overrides
+);
+
+// The facade automatically configures these plugins in priority order:
+// - EnvPlugin (999): @env(VAR_NAME) - Environment variables
+// - ContextPlugin (998): @context.key - Context values  
+// - IncludePlugin (997): @include(file) - Include external files
+// - ImportPlugin (996): @import directive - Import and merge configs
+// - ReferencePlugin (995): @path.to.value - Internal references
+// - ConfigValuePlugin (994): Config-specific value resolution
+```
+
+**When to use the Facade:**
+- You want a quick, fully-featured configuration setup
+- You need environment variables, references, imports, and includes
+- You prefer convention over configuration
+- You're starting a new project and want sensible defaults
+
+**When to use other factories:**
+- `StaticFactory`: Simple use cases without plugins
+- `Factory`: Custom plugin configuration and advanced control
 
 ## 🔧 Advanced Features
 

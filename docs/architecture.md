@@ -243,6 +243,52 @@ $adapter = $manager->getAdapter('config.json'); // Returns JsonAdapter
 
 ## Factory Pattern
 
+The library provides three factory approaches for different use cases.
+
+### Facade
+
+**Location**: `src/Facade/Config.php`
+
+The Facade provides an opinionated, production-ready configuration setup with all essential plugins pre-configured:
+
+```php
+namespace Concept\Config\Facade;
+
+class Config
+{
+    public static function config(
+        array|string $source, 
+        array $context = [], 
+        array $overrides = []
+    ): ConfigInterface;
+}
+```
+
+**Pre-configured Plugins** (in execution order):
+1. **EnvPlugin** (priority 999) - Environment variable resolution (`@env(VAR)`)
+2. **ContextPlugin** (priority 998) - Context value resolution (`@context.key`)
+3. **IncludePlugin** (priority 997) - File content inclusion (`@include(file)`)
+4. **ImportPlugin** (priority 996) - Configuration imports (`{"@import": "file"}`)
+5. **ReferencePlugin** (priority 995) - Internal references (`@path.to.value`)
+6. **ConfigValuePlugin** (priority 994) - Config value processing
+
+**Example**:
+```php
+use Concept\Config\Facade\Config;
+
+$config = Config::config(
+    source: 'config/*.json',
+    context: ['env' => 'production', 'ENV' => getenv()],
+    overrides: ['debug' => false]
+);
+```
+
+**When to Use**:
+- Quick setup with sensible defaults
+- Need all standard plugins (env, references, imports)
+- Starting new projects
+- Convention over configuration
+
 ### StaticFactory
 
 **Location**: `src/StaticFactory.php`
@@ -259,6 +305,12 @@ class StaticFactory
     public static function compile(string|array $sources, array $context, string $target): ConfigInterface;
 }
 ```
+
+**When to Use**:
+- Simple configurations without plugins
+- Direct file loading
+- Minimal overhead
+- Custom plugin setup needed
 
 ### Builder Factory
 
@@ -277,6 +329,24 @@ class Factory
     public function create(): ConfigInterface;
 }
 ```
+
+**When to Use**:
+- Need custom plugin configuration
+- Complex multi-source setups
+- Fine-grained control over plugin priorities
+- Advanced use cases
+
+**Comparison Table**:
+
+| Feature | Facade | StaticFactory | Builder Factory |
+|---------|--------|---------------|-----------------|
+| Ease of Use | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐ |
+| Pre-configured Plugins | ✅ Yes | ❌ No | ❌ No |
+| Custom Plugins | ❌ No | ❌ No | ✅ Yes |
+| Multiple Sources | ✅ Glob | ✅ Yes | ✅ Yes |
+| Context Support | ✅ Yes | ✅ Yes | ✅ Yes |
+| Overrides | ✅ Yes | ❌ No | ✅ Yes |
+| Best For | Quick setup | Simple configs | Advanced control |
 
 ## Data Flow
 
