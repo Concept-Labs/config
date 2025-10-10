@@ -5,15 +5,16 @@ Practical examples showing how to use Concept\Config in real-world scenarios.
 ## Table of Contents
 
 1. [Basic Application Configuration](#basic-application-configuration)
-2. [Multi-Environment Setup](#multi-environment-setup)
-3. [Database Configuration](#database-configuration)
-4. [Service Container Integration](#service-container-integration)
-5. [Multi-Tenant Application](#multi-tenant-application)
-6. [Microservices Configuration](#microservices-configuration)
-7. [Feature Flags](#feature-flags)
-8. [Configuration Compilation](#configuration-compilation)
-9. [Dynamic Configuration](#dynamic-configuration)
-10. [Testing with Configuration](#testing-with-configuration)
+2. [Using the Facade](#using-the-facade)
+3. [Multi-Environment Setup](#multi-environment-setup)
+4. [Database Configuration](#database-configuration)
+5. [Service Container Integration](#service-container-integration)
+6. [Multi-Tenant Application](#multi-tenant-application)
+7. [Microservices Configuration](#microservices-configuration)
+8. [Feature Flags](#feature-flags)
+9. [Configuration Compilation](#configuration-compilation)
+10. [Dynamic Configuration](#dynamic-configuration)
+11. [Testing with Configuration](#testing-with-configuration)
 
 ## Basic Application Configuration
 
@@ -55,6 +56,91 @@ define('APP_DEBUG', $config->get('app.debug', false));
 
 // Set timezone
 date_default_timezone_set($config->get('app.timezone'));
+```
+
+## Using the Facade
+
+The Facade provides the simplest way to create production-ready configurations with all features enabled.
+
+### config/app.json
+
+```json
+{
+  "app": {
+    "name": "@env(APP_NAME)",
+    "env": "@env(APP_ENV)",
+    "debug": "@env(APP_DEBUG)",
+    "url": "@env(APP_URL)"
+  },
+  "database": {
+    "host": "@env(DB_HOST)",
+    "port": "@env(DB_PORT)",
+    "name": "@env(DB_NAME)",
+    "user": "@env(DB_USER)",
+    "password": "@env(DB_PASSWORD)"
+  },
+  "paths": {
+    "root": "@env(APP_ROOT)",
+    "public": "@paths.root/public",
+    "storage": "@paths.root/storage",
+    "cache": "@paths.storage/cache"
+  }
+}
+```
+
+### app.php
+
+```php
+<?php
+require_once 'vendor/autoload.php';
+
+use Concept\Config\Facade\Config;
+
+// Load configuration with Facade - all plugins pre-configured
+$config = Config::config(
+    source: 'config/app.json',
+    context: [
+        'ENV' => getenv()  // Make environment variables available
+    ]
+);
+
+// All variables are automatically resolved
+echo $config->get('app.name');          // From APP_NAME env variable
+echo $config->get('database.host');     // From DB_HOST env variable
+echo $config->get('paths.cache');       // Resolved from @paths.root reference
+```
+
+### Multiple Files with Facade
+
+```php
+use Concept\Config\Facade\Config;
+
+// Load all config files
+$config = Config::config(
+    source: 'config/*.json',
+    context: [
+        'env' => 'production',
+        'region' => 'us-east-1',
+        'ENV' => getenv()
+    ]
+);
+```
+
+### Facade with Overrides
+
+```php
+use Concept\Config\Facade\Config;
+
+// Load config with runtime overrides
+$config = Config::config(
+    source: 'config/app.json',
+    context: ['ENV' => getenv()],
+    overrides: [
+        'app.debug' => true,           // Force debug mode
+        'cache.enabled' => false,      // Disable cache for testing
+        'mail.driver' => 'log'         // Use log driver for emails
+    ]
+);
 ```
 
 ## Multi-Environment Setup

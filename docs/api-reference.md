@@ -347,6 +347,79 @@ StaticFactory::compile(
 
 ---
 
+## Facade\Config
+
+Simplified facade interface for creating fully-featured configurations with pre-configured plugins.
+
+**Namespace**: `Concept\Config\Facade`
+
+### Methods
+
+#### `config(array|string $source, array $context = [], array $overrides = []): ConfigInterface`
+
+Create a new Config instance with all essential plugins pre-configured.
+
+**Parameters**:
+- `$source` - File path, glob pattern, or array of sources
+- `$context` - Optional context variables for variable resolution (default: `[]`)
+- `$overrides` - Optional configuration values to override (default: `[]`)
+
+**Returns**: ConfigInterface with all plugins configured
+
+**Pre-configured Plugins**:
+- EnvPlugin (priority 999) - Environment variable resolution
+- ContextPlugin (priority 998) - Context value resolution
+- IncludePlugin (priority 997) - File inclusion
+- ImportPlugin (priority 996) - Configuration imports
+- ReferencePlugin (priority 995) - Internal references
+- ConfigValuePlugin (priority 994) - Config value processing
+
+**Examples**:
+
+```php
+use Concept\Config\Facade\Config;
+
+// Basic usage
+$config = Config::config('config/app.json');
+
+// With context
+$config = Config::config(
+    source: 'config/app.json',
+    context: [
+        'env' => 'production',
+        'ENV' => getenv()
+    ]
+);
+
+// With glob pattern
+$config = Config::config('config/*.json');
+
+// With overrides
+$config = Config::config(
+    source: 'config/app.json',
+    context: ['ENV' => getenv()],
+    overrides: [
+        'app.debug' => false,
+        'cache.enabled' => true
+    ]
+);
+
+// Access values - plugins auto-resolve variables
+echo $config->get('database.host');  // @env(DB_HOST) resolved automatically
+```
+
+**When to Use**:
+- Starting a new project with standard configuration needs
+- Need environment variables, references, and imports
+- Want sensible defaults without manual plugin configuration
+- Prefer convention over configuration
+
+**Alternative Approaches**:
+- Use `StaticFactory` for simple configurations without plugins
+- Use `Factory` builder for custom plugin configuration and fine-grained control
+
+---
+
 ## Factory
 
 Builder pattern factory for configurations.

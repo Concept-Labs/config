@@ -131,6 +131,78 @@ $config = new Config();
 $config->load('config/app.php');
 ```
 
+## Using the Facade
+
+The `Concept\Config\Facade\Config` class is the recommended way to create configurations for most use cases. It comes with all essential plugins pre-configured, ready to handle environment variables, references, imports, and more.
+
+### Basic Facade Usage
+
+```php
+use Concept\Config\Facade\Config;
+
+// Create from file with all features enabled
+$config = Config::config('config/app.json');
+
+// Access values immediately - variables are auto-resolved
+echo $config->get('app.name');
+```
+
+### Facade with Context
+
+```php
+use Concept\Config\Facade\Config;
+
+// Provide context for variable resolution
+$config = Config::config(
+    source: 'config/app.json',
+    context: [
+        'env' => 'production',
+        'region' => 'us-east-1',
+        'ENV' => getenv()  // Make all environment variables available
+    ]
+);
+```
+
+### Facade with Multiple Files
+
+```php
+use Concept\Config\Facade\Config;
+
+// Load multiple files using glob patterns
+$config = Config::config('config/*.json', context: [
+    'ENV' => getenv()
+]);
+```
+
+### Facade with Overrides
+
+```php
+use Concept\Config\Facade\Config;
+
+// Override specific values
+$config = Config::config(
+    source: 'config/app.json',
+    context: ['ENV' => getenv()],
+    overrides: [
+        'app.debug' => true,
+        'cache.enabled' => false
+    ]
+);
+```
+
+### Pre-configured Plugins
+
+The Facade automatically includes these plugins:
+
+| Plugin | Priority | Purpose | Example |
+|--------|----------|---------|---------|
+| EnvPlugin | 999 | Environment variables | `@env(DB_HOST)` |
+| ContextPlugin | 998 | Context values | `@context.region` |
+| IncludePlugin | 997 | Include file content | `@include(file.json)` |
+| ImportPlugin | 996 | Import & merge configs | `{"@import": "db.json"}` |
+| ReferencePlugin | 995 | Internal references | `@database.host` |
+| ConfigValuePlugin | 994 | Config value resolution | Advanced parsing |
+
 ## Using Static Factory
 
 The `StaticFactory` class provides convenient static methods for creating configurations:
