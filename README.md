@@ -1,0 +1,254 @@
+# Concept\Config
+
+A powerful, flexible, and extensible configuration management library for PHP 8.2+.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+## 🌟 Features
+
+- **Dot Notation Access**: Access nested configuration values using intuitive dot notation
+- **Multiple Format Support**: JSON, PHP arrays, and extensible to YAML, INI, etc.
+- **Plugin System**: Extensible plugin architecture for custom processing
+- **Variable Interpolation**: Support for environment variables, references, and context values
+- **Import/Include System**: Modular configuration with file imports
+- **Context Management**: Flexible context for runtime variable resolution
+- **Lazy Resolution**: Efficient lazy evaluation of configuration values
+- **Factory Pattern**: Multiple factory methods for different use cases
+- **Type Safe**: Full PHP 8.2+ type hints and strict typing
+
+## 📦 Installation
+
+Install via Composer:
+
+```bash
+composer require concept-labs/config
+```
+
+## 🚀 Quick Start
+
+### Basic Usage
+
+```php
+use Concept\Config\Config;
+
+// Create a config instance with inline data
+$config = new Config([
+    'app' => [
+        'name' => 'MyApp',
+        'debug' => true,
+        'version' => '1.0.0'
+    ],
+    'database' => [
+        'host' => 'localhost',
+        'port' => 3306
+    ]
+]);
+
+// Access values using dot notation
+echo $config->get('app.name');        // "MyApp"
+echo $config->get('database.host');   // "localhost"
+
+// Set values
+$config->set('app.version', '2.0.0');
+
+// Check if a key exists
+if ($config->has('app.debug')) {
+    // ...
+}
+```
+
+### Loading from Files
+
+```php
+use Concept\Config\Config;
+
+// Load from a JSON file
+$config = new Config();
+$config->load('config/app.json', parse: true);
+
+// Or use the static factory
+use Concept\Config\StaticFactory;
+
+$config = StaticFactory::fromFile('config/app.json', parse: true);
+```
+
+### Using Context and Variables
+
+```php
+// Create config with environment variable support
+$config = new Config([
+    'database' => [
+        'host' => '@env(DB_HOST)',
+        'user' => '@env(DB_USER)',
+        'password' => '@env(DB_PASSWORD)'
+    ]
+], context: [
+    'ENV' => getenv()
+]);
+
+// Parse to resolve variables
+$config->getParser()->parse($config->dataReference());
+```
+
+## 📚 Documentation
+
+Comprehensive documentation is available in the [docs](./docs) directory:
+
+- [Getting Started](./docs/getting-started.md) - Installation and basic usage
+- [Architecture](./docs/architecture.md) - System architecture and design
+- [Configuration Guide](./docs/configuration.md) - Configuration methods and options
+- [Plugin System](./docs/plugins.md) - Understanding and creating plugins
+- [Adapters](./docs/adapters.md) - File format adapters
+- [Context & Variables](./docs/context.md) - Variable resolution and context management
+- [API Reference](./docs/api-reference.md) - Complete API documentation
+- [Examples](./docs/examples.md) - Practical examples and use cases
+- [Advanced Topics](./docs/advanced.md) - Custom plugins, adapters, and factories
+
+## 💡 Key Concepts
+
+### Dot Notation
+
+Access nested configuration values using familiar dot notation:
+
+```php
+$config->get('database.connection.host');
+$config->set('cache.drivers.redis.port', 6379);
+```
+
+### Plugin System
+
+Extend functionality through plugins:
+
+```php
+// Environment variables
+'@env(DB_HOST)'
+
+// Config references
+'@database.host'
+
+// Custom plugins
+$config->getParser()->registerPlugin(MyCustomPlugin::class, priority: 100);
+```
+
+### Factories
+
+Multiple ways to create configurations:
+
+```php
+// Static factory
+$config = StaticFactory::create(['key' => 'value']);
+$config = StaticFactory::fromFile('config.json');
+$config = StaticFactory::fromGlob('config/*.json');
+
+// Builder factory
+$config = (new Factory())
+    ->withFile('config/app.json')
+    ->withFile('config/database.json')
+    ->withContext(['env' => 'production'])
+    ->create();
+```
+
+## 🔧 Advanced Features
+
+### Importing Configurations
+
+```php
+// Import from another file
+$config->import('additional-config.json', parse: true);
+
+// Import to a specific path
+$config->importTo('database-config.json', 'database', parse: true);
+```
+
+### Configuration Nodes
+
+```php
+// Get a configuration subtree as a new Config instance
+$dbConfig = $config->node('database');
+echo $dbConfig->get('host'); // Direct access without 'database.' prefix
+```
+
+### Exporting
+
+```php
+// Export to JSON
+$config->export('output/config.json');
+
+// Export to PHP
+$config->export('output/config.php');
+```
+
+## 🧪 Examples
+
+### Multi-Environment Configuration
+
+```json
+{
+  "app": {
+    "name": "MyApp",
+    "env": "@env(APP_ENV)",
+    "debug": "@env(APP_DEBUG)"
+  },
+  "database": {
+    "host": "@env(DB_HOST)",
+    "port": "@env(DB_PORT)",
+    "name": "@env(DB_NAME)"
+  }
+}
+```
+
+### Configuration with References
+
+```json
+{
+  "paths": {
+    "root": "/var/www",
+    "public": "@paths.root/public",
+    "storage": "@paths.root/storage"
+  }
+}
+```
+
+### Importing Multiple Files
+
+```json
+{
+  "@import": [
+    "config/database.json",
+    "config/cache.json",
+    "config/services.json"
+  ]
+}
+```
+
+## 🛠️ Development
+
+### Requirements
+
+- PHP 8.2 or higher
+- Composer
+
+### Dependencies
+
+- `concept-labs/arrays` - Array manipulation utilities
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📞 Support
+
+- **Issues**: [GitHub Issues](https://github.com/Concept-Labs/config/issues)
+- **Documentation**: [Full Documentation](./docs)
+
+## 🙏 Credits
+
+Developed and maintained by [Concept Labs](https://github.com/Concept-Labs).
+
+---
+
+**Made with ❤️ by Concept Labs**
