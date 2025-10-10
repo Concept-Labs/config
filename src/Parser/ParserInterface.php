@@ -15,25 +15,7 @@ interface ParserInterface
      * 
      * @return static
      */
-    public function parse(array &$data, bool $resolveNow = true): static;
-
-    /**
-     * Prepare the data for parsing
-     * 
-     * @param array &$data The data to prepare
-     * 
-     * @return static
-     */
-    public function prepare(array &$data): static;
-
-    /**
-     * Resolve the data
-     * 
-     * @param array &$data The data to resolve
-     * 
-     * @return static
-     */
-    public function resolve(array &$data): static;
+    public function parse(array &$data): static;
 
 
     /**
@@ -63,6 +45,6 @@ interface ParserInterface
      * 
      * @return PluginInterface|callable
      */
-    public function getPlugin(string $plugin): PluginInterface|callable;
+    //public function getPlugin(string $plugin): PluginInterface|callable;
 
 }

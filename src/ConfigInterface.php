@@ -5,6 +5,7 @@ namespace Concept\Config;
 use Concept\Arrays\DotArray\DotArrayInterface;
 use Concept\Config\Context\ContextInterface;
 use Concept\Config\Parser\ParserInterface;
+use Concept\Config\Parser\ResolvableInterface;
 use Concept\Config\Resource\ResourceInterface;
 use IteratorAggregate;
 
@@ -53,7 +54,7 @@ interface ConfigInterface extends IteratorAggregate //, DotArrayInterface
      *
      * @return DotArrayInterface
      */
-    public function dotArray(): DotArrayInterface;
+    //public function dotArray(): DotArrayInterface;
 
     /**
      * Get a node by key
@@ -104,29 +105,29 @@ interface ConfigInterface extends IteratorAggregate //, DotArrayInterface
      * Load configuration from a source
      *
      * @param string|array|ConfigInterface $source
-     * @param bool $parse
+     * 
      * @return static
      */
-    public function load(string|array|ConfigInterface $source, bool $parse = false): static;
+    public function load(string|array|ConfigInterface $source): static;
 
     /**
      * Import configuration from a source
      *
      * @param string|array|ConfigInterface $source
-     * @param bool $parse
+     * 
      * @return static
      */
-    public function import(string|array|ConfigInterface $source, bool $parse = false): static;
+    public function import(string|array|ConfigInterface $source): static;
 
     /**
      * Import configuration to a specific path
      *
      * @param string|array|ConfigInterface $source
      * @param string $path
-     * @param bool $parse
+     * 
      * @return static
      */
-    public function importTo(string|array|ConfigInterface $source, string $path, bool $parse = false): static;
+    public function importTo(string|array|ConfigInterface $source, string $path): static;
 
     /**
      * Export configuration to a target file
@@ -164,6 +165,15 @@ interface ConfigInterface extends IteratorAggregate //, DotArrayInterface
      * @return DotArrayInterface
      */
     public function getParser(): ParserInterface;
+
+    /**
+     * Add a resolver to the config
+     * 
+     * @param ResolvableInterface $resolver The resolver to add
+     * 
+     * @return static
+     */
+    public function addLazyResolver(ResolvableInterface $resolver): static;
    
 }
     

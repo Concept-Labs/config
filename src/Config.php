@@ -2,7 +2,7 @@
 
 namespace Concept\Config;
 
-use Concept\Arrays\DotArray\DotArrayInterface;
+use Concept\Arrays\RecursiveApi;
 use Concept\Arrays\RecursiveDotApi;
 use Concept\Config\Storage\Storage;
 use Concept\Config\Storage\StorageInterface;
@@ -46,6 +46,13 @@ class Config implements ConfigInterface
     private ?ParserInterface $parser = null;
 
     /**
+     * The lazy resolvers
+     * 
+     * @var array<int, ResolvableInterface>
+     */
+    private array $lazyResolvers = [];
+
+    /**
      * Constructor
      * 
      * @param array $data
@@ -55,26 +62,34 @@ class Config implements ConfigInterface
     {
         $this->configStorage = new Storage($data);
         $this->context = (new Context($context))->withEnv(getenv());
-
-        $this->init();
     }
 
     public function __clone()
     {
         $this->configStorage = clone $this->configStorage;
         $this->context = clone $this->context;
-        $this->resource = null; // Reset resource to ensure a new instance is created
-        $this->parser = null; // Reset parser to ensure a new instance is created
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function reset(): static
     {
         $this->configStorage->reset();
-        $this->context = new Context();
-        $this->resource = null;
-        $this->parser = null;
+        $this->context->reset();
+        $this->resource = null; 
+        $this->parser = null; 
+        $this->lazyResolvers = [];
 
         return $this;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function prototype(): static
+    {
+        return (clone $this)->reset();
     }
 
     /**
@@ -128,9 +143,17 @@ class Config implements ConfigInterface
     /**
      * {@inheritDoc}
      */
-    public function dotArray(): DotArrayInterface
+    // public function dotArray(): DotArrayInterface
+    // {
+    //     return $this->getStorage();
+    // }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function query(string $query): mixed
     {
-        return $this->getStorage();
+        return $this->getStorage()->query($query);
     }
 
     /**
@@ -143,15 +166,7 @@ class Config implements ConfigInterface
         return $this->configStorage;
     }
 
-    /**
-     * Initialize the config
-     * 
-     * @return static
-     */
-    protected function init(): static
-    {
-        return $this;
-    }
+    
 
     /**
      * {@inheritDoc}
@@ -184,7 +199,7 @@ class Config implements ConfigInterface
              * If the current value is a ResolvableInterface, resolve it
              */
             while ($current instanceof ResolvableInterface) {
-                $current = $current();
+                $current = $current($this);
             }
         }
 
@@ -226,13 +241,15 @@ class Config implements ConfigInterface
             $parse
         );
 
+        $this->processLazyResolvers();
+
         return $this;
     }
 
     /**
      * {@inheritDoc}
      */
-    public function import(string|array|ConfigInterface $source, bool $parse = false): static
+    public function import(string|array|ConfigInterface $source): static
     {
         if ($source instanceof ConfigInterface) {
             $source = $source->toArray();
@@ -240,17 +257,19 @@ class Config implements ConfigInterface
 
         $importData = [];
 
-        $this->getResource()->read($importData, $source, $parse);
+        $this->getResource()->read($importData, $source);
 
         $this->getStorage()->replace($importData);
 
+        $this->processLazyResolvers();
+
         return $this;
     }
 
     /**
      * {@inheritDoc}
      */
-    public function importTo(string|array|ConfigInterface $source, string $path, bool $parse = false): static
+    public function importTo(string|array|ConfigInterface $source, string $path): static
     {
         if ($source instanceof ConfigInterface) {
             $source = $source->toArray();
@@ -258,12 +277,29 @@ class Config implements ConfigInterface
 
         $importData = [];
 
-        $this->getResource()->read($importData, $source, $parse);
+        $this->getResource()->read($importData, $source);
+
 
         $this->getStorage()->replace($importData, $path);
 
+        $this->processLazyResolvers();
+
         return $this;
     }
+
+    // protected function walkResolve(array &$data): static
+    // {
+    //     RecursiveApi::walk(
+    //         $data,
+    //         function (&$value) {
+    //             while ($value instanceof ResolvableInterface) {
+    //                 $value = $value($this);
+    //             }
+    //         }
+    //     );
+
+    //     return $this;
+    // }
 
     /**
      * {@inheritDoc}
@@ -274,6 +310,23 @@ class Config implements ConfigInterface
             ->write(
                 $target, $this->getStorage()->toArray()
             );
+
+        return $this;
+    }
+
+    public function addLazyResolver(ResolvableInterface $resolver): static
+    {
+        $this->lazyResolvers[] = $resolver;
+        return $this;
+    }
+
+    protected function processLazyResolvers(): static
+    {
+        foreach ($this->lazyResolvers as $resolver) {
+            $resolver($this);
+        }
+
+        $this->lazyResolvers = [];
 
         return $this;
     }

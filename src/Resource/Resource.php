@@ -63,10 +63,10 @@ class Resource implements ResourceInterface
         $fragment = false;
 
         if (is_array($source)) {
-/**
- @todo: parse array
- */
-            $data = $source;
+        /**
+         @todo: parse array ?
+        */
+            $data = array_merge($data, $source); //copy array data
 
             return $this;
 
@@ -128,7 +128,7 @@ class Resource implements ResourceInterface
          * If a fragment is specified, extract that part of the data
          */
         if ($fragment) {
-            $data = RecursiveDotApi::get($data, $fragment);
+            $data = &RecursiveDotApi::get($data, $fragment);
         }
 
         return $this;

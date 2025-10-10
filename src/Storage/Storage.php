@@ -1,9 +1,11 @@
 <?php
 namespace Concept\Config\Storage;
 
-use Concept\Arrays\DotArray\DotArray;
+use Concept\Arrays\DotArray\DotQuery\DotQuery;
 
-class Storage extends DotArray implements StorageInterface
+class Storage 
+    extends DotQuery
+    implements StorageInterface
 {
     
 }
