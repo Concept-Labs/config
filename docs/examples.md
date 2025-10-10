@@ -30,10 +30,10 @@ Practical examples showing how to use Concept\Config in real-world scenarios.
     "locale": "en"
   },
   "paths": {
-    "root": "@env(APP_ROOT)",
-    "storage": "@paths.root/storage",
-    "cache": "@paths.storage/cache",
-    "logs": "@paths.storage/logs"
+    "root": "${APP_ROOT}",
+    "storage": "${APP_ROOT}/storage",
+    "cache": "${APP_ROOT}/storage/cache",
+    "logs": "${APP_ROOT}/storage/logs"
   }
 }
 ```
@@ -81,9 +81,9 @@ The Facade provides the simplest way to create production-ready configurations w
   },
   "paths": {
     "root": "@env(APP_ROOT)",
-    "public": "@paths.root/public",
-    "storage": "@paths.root/storage",
-    "cache": "@paths.storage/cache"
+    "public": "@env(APP_ROOT)/public",
+    "storage": "@env(APP_ROOT)/storage",
+    "cache": "@env(APP_ROOT)/storage/cache"
   }
 }
 ```
@@ -290,93 +290,6 @@ $config = StaticFactory::fromFile('config/database.php');
 $pdo = Database::connect($config);
 ```
 
-## Service Container Integration
-
-### config/services.json
-
-```json
-{
-  "services": {
-    "cache": {
-      "class": "App\\Services\\CacheService",
-      "config": "@cache"
-    },
-    "logger": {
-      "class": "App\\Services\\Logger",
-      "config": "@logging"
-    },
-    "mailer": {
-      "class": "App\\Services\\Mailer",
-      "config": "@mail"
-    }
-  },
-  
-  "cache": {
-    "driver": "@env(CACHE_DRIVER)",
-    "prefix": "app_",
-    "ttl": 3600
-  },
-  
-  "logging": {
-    "channel": "app",
-    "level": "@env(LOG_LEVEL)",
-    "path": "@paths.logs/app.log"
-  },
-  
-  "mail": {
-    "driver": "@env(MAIL_DRIVER)",
-    "host": "@env(MAIL_HOST)",
-    "port": "@env(MAIL_PORT)",
-    "from": {
-      "address": "@env(MAIL_FROM_ADDRESS)",
-      "name": "@app.name"
-    }
-  }
-}
-```
-
-### Container.php
-
-```php
-<?php
-
-class Container
-{
-    private array $services = [];
-    
-    public function __construct(private Config $config)
-    {
-    }
-    
-    public function get(string $name): object
-    {
-        if (isset($this->services[$name])) {
-            return $this->services[$name];
-        }
-        
-        $serviceConfig = $this->config->get("services.$name");
-        
-        if (!$serviceConfig) {
-            throw new \RuntimeException("Service not found: $name");
-        }
-        
-        $class = $serviceConfig['class'];
-        $config = $serviceConfig['config'] ?? [];
-        
-        $this->services[$name] = new $class($config);
-        
-        return $this->services[$name];
-    }
-}
-
-// Usage
-$config = StaticFactory::fromFile('config/services.json', parse: true);
-$container = new Container($config);
-
-$cache = $container->get('cache');
-$logger = $container->get('logger');
-```
-
 ## Multi-Tenant Application
 
 ### TenantConfig.php
@@ -492,150 +405,16 @@ echo $config->get('app.name'); // Tenant-specific app name
 }
 ```
 
-### ServiceRegistry.php
 
-```php
-<?php
-
-class ServiceRegistry
-{
-    private Config $config;
-    private array $clients = [];
-    
-    public function __construct(Config $config)
-    {
-        $this->config = $config;
-    }
-    
-    public function getServiceClient(string $serviceName): HttpClient
-    {
-        if (isset($this->clients[$serviceName])) {
-            return $this->clients[$serviceName];
-        }
-        
-        $serviceConfig = $this->config->get("services.$serviceName");
-        
-        if (!$serviceConfig) {
-            throw new \RuntimeException("Service not configured: $serviceName");
-        }
-        
-        $this->clients[$serviceName] = new HttpClient(
-            $serviceConfig['url'],
-            [
-                'timeout' => $serviceConfig['timeout'] ?? 5,
-                'retries' => $serviceConfig['retries'] ?? 0,
-                'headers' => [
-                    'X-API-Key' => $serviceConfig['api_key'] ?? '',
-                ]
-            ]
-        );
-        
-        return $this->clients[$serviceName];
-    }
-}
-```
-
-## Feature Flags
-
-### config/features.json
-
-```json
-{
-  "features": {
-    "new_ui": {
-      "enabled": "@env(FEATURE_NEW_UI)",
-      "rollout_percentage": 50,
-      "allowed_users": ["admin@example.com"]
-    },
-    "beta_api": {
-      "enabled": true,
-      "version": "v2",
-      "endpoints": ["/api/v2/users", "/api/v2/products"]
-    },
-    "analytics": {
-      "enabled": true,
-      "provider": "google",
-      "tracking_id": "@env(GA_TRACKING_ID)"
-    },
-    "payments": {
-      "enabled": true,
-      "providers": ["stripe", "paypal"],
-      "default": "stripe"
-    }
-  }
-}
-```
-
-### FeatureFlags.php
-
-```php
-<?php
-
-class FeatureFlags
-{
-    private Config $config;
-    private array $userContext;
-    
-    public function __construct(Config $config, array $userContext = [])
-    {
-        $this->config = $config;
-        $this->userContext = $userContext;
-    }
-    
-    public function isEnabled(string $feature): bool
-    {
-        $featureConfig = $this->config->get("features.$feature");
-        
-        if (!$featureConfig) {
-            return false;
-        }
-        
-        // Check base enabled flag
-        if (!($featureConfig['enabled'] ?? false)) {
-            return false;
-        }
-        
-        // Check rollout percentage
-        if (isset($featureConfig['rollout_percentage'])) {
-            $userId = $this->userContext['id'] ?? 0;
-            $userHash = crc32($userId . $feature) % 100;
-            
-            if ($userHash >= $featureConfig['rollout_percentage']) {
-                return false;
-            }
-        }
-        
-        // Check allowed users
-        if (isset($featureConfig['allowed_users'])) {
-            $userEmail = $this->userContext['email'] ?? '';
-            
-            if (!in_array($userEmail, $featureConfig['allowed_users'])) {
-                return false;
-            }
-        }
-        
-        return true;
-    }
-    
-    public function getFeatureConfig(string $feature): ?array
-    {
-        return $this->config->get("features.$feature");
-    }
-}
-
-// Usage
-$config = StaticFactory::fromFile('config/features.json', parse: true);
-$flags = new FeatureFlags($config, [
-    'id' => $userId,
-    'email' => $userEmail
-]);
-
-if ($flags->isEnabled('new_ui')) {
-    // Show new UI
-}
-```
 
 ## Configuration Compilation
+
+### export (best way)
+```php
+$config->export('compiled.json'); //export parsed to single json file
+// OR f.e.
+//$config->export('compiled.php'); //auto resolution of target format
+```
 
 ### compile.php
 
