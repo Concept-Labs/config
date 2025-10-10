@@ -212,28 +212,35 @@ Imports and merges external configuration files.
 **Priority**: 998  
 **Location**: `src/Parser/Plugin/ContextPlugin.php`
 
-Resolves values from the configuration context.
+Resolves values from the configuration context using the `${...}` syntax.
+
+**Syntax**: `${path.to.context.value}`
 
 **Example**:
 ```php
 $config = new Config(
     data: [
         'app' => [
-            'env' => '@context.environment',
-            'region' => '@context.region'
+            'env' => '${environment}',
+            'region' => '${region}',
+            'database' => 'app_${tenant_id}'
         ]
     ],
     context: [
         'environment' => 'production',
-        'region' => 'us-east-1'
+        'region' => 'us-east-1',
+        'tenant_id' => 'acme'
     ]
 );
 
 $config->getParser()->parse($config->dataReference());
 
-echo $config->get('app.env');    // 'production'
-echo $config->get('app.region'); // 'us-east-1'
+echo $config->get('app.env');      // 'production'
+echo $config->get('app.region');   // 'us-east-1'
+echo $config->get('app.database'); // 'app_acme'
 ```
+
+**Note**: Context variables can be used inline within strings and support multiple replacements in the same value.
 
 ### CommentPlugin
 

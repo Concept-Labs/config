@@ -266,7 +266,7 @@ class Config
 
 **Pre-configured Plugins** (in execution order):
 1. **EnvPlugin** (priority 999) - Environment variable resolution (`@env(VAR)`)
-2. **ContextPlugin** (priority 998) - Context value resolution (`@context.key`)
+2. **ContextPlugin** (priority 998) - Context value resolution (`${context.key}`)
 3. **IncludePlugin** (priority 997) - File content inclusion (`@include(file)`)
 4. **ImportPlugin** (priority 996) - Configuration imports (`{"@import": "file"}`)
 5. **ReferencePlugin** (priority 995) - Internal references (`@path.to.value`)

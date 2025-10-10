@@ -210,17 +210,50 @@ $config->import([
 
 ## Exporting Configuration
 
+The `export()` method allows you to save your configuration to a file. The output format is automatically detected based on the file extension using the **Resource** adapter system.
+
 ### To Files
 
 ```php
-// Export to JSON
+// Export to JSON (uses JsonAdapter)
 $config->export('output/config.json');
 
-// Export to PHP
+// Export to PHP (uses PhpAdapter)
 $config->export('output/config.php');
+
+// Export parsed configuration for production
+$config = StaticFactory::fromGlob('config/*.json', parse: true);
+$config->export('compiled/config.json');
 ```
 
-The format is determined by file extension.
+### Format Auto-Detection
+
+The `export()` method uses the **Resource** component with registered adapters to determine the output format:
+
+- **`.json`** - Uses `JsonAdapter` to write JSON with pretty formatting
+- **`.php`** - Uses `PhpAdapter` to write a PHP array (using `var_export`)
+
+The adapter is automatically selected based on the file extension via `AdapterManager::getAdapter()`.
+
+### How It Works
+
+1. `Config::export($target)` calls `Resource::write($target, $data)`
+2. `Resource::write()` uses `AdapterManager::getAdapter($target)` to find the appropriate adapter
+3. The adapter checks if it supports the file using `Adapter::supports($uri)` (checks file extension)
+4. The selected adapter writes the data in the appropriate format
+
+### Custom Formats
+
+You can add support for additional formats by registering custom adapters:
+
+```php
+$resource = $config->getResource();
+$adapterManager = $resource->getAdapterManager();
+$adapterManager->registerAdapter(YamlAdapter::class);
+
+// Now you can export to YAML
+$config->export('output/config.yaml');
+```
 
 ### Get as Array
 

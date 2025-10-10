@@ -186,7 +186,7 @@ $config = Config::config(
 
 // The facade automatically configures these plugins in priority order:
 // - EnvPlugin (999): @env(VAR_NAME) - Environment variables
-// - ContextPlugin (998): @context.key - Context values  
+// - ContextPlugin (998): ${context.key} - Context values  
 // - IncludePlugin (997): @include(file) - Include external files
 // - ImportPlugin (996): @import directive - Import and merge configs
 // - ReferencePlugin (995): @path.to.value - Internal references
@@ -225,13 +225,17 @@ echo $dbConfig->get('host'); // Direct access without 'database.' prefix
 
 ### Exporting
 
+Export configuration to files with automatic format detection based on file extension:
+
 ```php
-// Export to JSON
+// Export to JSON (auto-detected from .json extension)
 $config->export('output/config.json');
 
-// Export to PHP
+// Export to PHP array (auto-detected from .php extension)
 $config->export('output/config.php');
 ```
+
+The format is automatically determined by the Resource adapter system based on the file extension.
 
 ## 🧪 Examples
 

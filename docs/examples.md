@@ -409,14 +409,31 @@ echo $config->get('app.name'); // Tenant-specific app name
 
 ## Configuration Compilation
 
-### export (best way)
+Configuration compilation allows you to combine multiple configuration files into a single optimized file for production use. This reduces file I/O and improves performance.
+
+### Using export() Method (Recommended)
+
+The `export()` method provides the easiest way to export your configuration. It automatically detects the output format based on the file extension:
+
 ```php
-$config->export('compiled.json'); //export parsed to single json file
-// OR f.e.
-//$config->export('compiled.php'); //auto resolution of target format
+// Load and parse configuration
+$config = StaticFactory::fromGlob('config/*.json', parse: true);
+
+// Export to JSON (format auto-detected from .json extension)
+$config->export('compiled/config.json');
+
+// Or export to PHP array (format auto-detected from .php extension)
+$config->export('compiled/config.php');
 ```
 
-### compile.php
+**How format detection works:**
+- The `export()` method uses the **Resource** component
+- Resource delegates to **AdapterManager** which selects the appropriate adapter based on file extension
+- `.json` files use `JsonAdapter`, `.php` files use `PhpAdapter`
+
+### Using StaticFactory::compile()
+
+For more control over the compilation process:
 
 ```php
 <?php
@@ -437,11 +454,12 @@ StaticFactory::compile(
         'env' => 'production',
         'ENV' => getenv()
     ],
-    target: 'compiled/config.json'
+    target: 'compiled/config.json'  // Format auto-detected from extension
 );
 
 echo "Configuration compiled successfully!\n";
 ```
+
 
 ### Usage in production
 

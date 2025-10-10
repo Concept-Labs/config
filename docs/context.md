@@ -129,6 +129,16 @@ if ($context->has('app')) {
 
 ## Variable Resolution
 
+The configuration system supports three types of variable resolution, each with its own syntax:
+
+| Type | Syntax | Purpose | Example |
+|------|--------|---------|---------|
+| Environment Variables | `@env(VAR)` | Access system environment variables | `@env(DB_HOST)` |
+| Config References | `@path.to.value` | Reference other configuration values | `@database.host` |
+| Context Variables | `${var}` | Access context data | `${region}` or `${user.name}` |
+
+**Important**: Do not confuse the syntaxes! Context variables use `${...}`, NOT `@context.path`.
+
 ### Environment Variables
 
 **Syntax**: `@env(VARIABLE_NAME)`
@@ -166,7 +176,9 @@ if ($context->has('app')) {
 
 ### Context References
 
-**Syntax**: Via ContextPlugin
+**Syntax**: `${path.to.context.value}`
+
+Context variables are resolved using the **ContextPlugin**, which allows you to reference values stored in the configuration context. The syntax uses `${...}` with the path to the context value.
 
 ```php
 $config = new Config(
@@ -175,7 +187,8 @@ $config = new Config(
             'name' => 'MyApp',
             'environment' => '${env}',
             'region' => '${region}',
-            'tenant' => '${tenant}'
+            'tenant' => '${tenant}',
+            'database' => 'app_${tenant}_${env}'
         ]
     ],
     context: [
@@ -184,7 +197,17 @@ $config = new Config(
         'tenant' => 'acme-corp'
     ]
 );
+
+$config->getParser()->parse($config->dataReference());
+
+echo $config->get('app.environment'); // 'production'
+echo $config->get('app.database');    // 'app_acme-corp_production'
 ```
+
+**Key Features**:
+- Multiple variables can be used in a single value
+- Variables can be combined with static text
+- Supports nested context paths (e.g., `${user.profile.name}`)
 
 ## Practical Examples
 
@@ -284,11 +307,11 @@ class FeatureFlags
                     'rollout_percentage' => 50
                 ],
                 'beta_api' => [
-                    'enabled' => '@context.user.beta_tester',
+                    'enabled' => '${user.beta_tester}',
                     'version' => 'v2'
                 ],
                 'premium_features' => [
-                    'enabled' => '@context.user.subscription_tier'
+                    'enabled' => '${user.subscription_tier}'
                 ]
             ]
         ]);
