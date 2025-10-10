@@ -150,21 +150,6 @@ If you find any issues or want to improve the documentation:
 3. Include code examples where appropriate
 4. Update this index if adding new files
 
-## 📝 Documentation Files
-
-| File | Description | Lines |
-|------|-------------|-------|
-| [README.md](../README.md) | Project overview and quick start | ~215 |
-| [getting-started.md](./getting-started.md) | Installation and basics | ~280 |
-| [architecture.md](./architecture.md) | System architecture | ~540 |
-| [configuration.md](./configuration.md) | Configuration methods | ~500 |
-| [plugins.md](./plugins.md) | Plugin system | ~690 |
-| [adapters.md](./adapters.md) | Adapter system | ~740 |
-| [context.md](./context.md) | Context and variables | ~650 |
-| [api-reference.md](./api-reference.md) | Complete API | ~520 |
-| [examples.md](./examples.md) | Practical examples | ~730 |
-| [advanced.md](./advanced.md) | Advanced topics | ~1,000 |
-| **Total** | | **~6,400** |
 
 ## 🆘 Getting Help
 
