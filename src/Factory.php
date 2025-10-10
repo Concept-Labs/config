@@ -186,5 +186,10 @@ class Factory
 
         return $this;
     }
+
+    public function fromArray(array $data): ConfigInterface
+    {
+        return $this->withOverrides($data)->create();
+    }
    
 }

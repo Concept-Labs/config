@@ -25,12 +25,8 @@ class Parser implements ParserInterface
     private $pluginMiddlewareStack = null;
 
     /**
-     * The post directives
      * 
-     * @var callable[]
      */
-    private array $postDirectivesQueue = [];
-
     public function __construct(private ConfigInterface $config)
     {
     }
@@ -43,6 +39,16 @@ class Parser implements ParserInterface
     protected function getConfig(): ConfigInterface
     {
         return $this->config;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function parse(array &$data): static
+    {
+        $this->parseNode($data, null, $data);
+
+        return $this;
     }
 
     /**
@@ -75,60 +81,6 @@ class Parser implements ParserInterface
     }
 
     /**
-     * {@inheritDoc}
-     */
-    public function getPlugin(string $plugin): PluginInterface|callable
-    {
-        foreach ($this->plugins as $plugins) {
-            if (isset($plugins[$plugin])) {
-                return $plugins[$plugin];
-            }
-        }
-
-        throw new \InvalidArgumentException("Plugin {$plugin} not found");
-    }
-
-    
-
-    /**
-     * {@inheritDoc}
-     */
-    public function parse(array &$data, bool $resolveNow = true): static
-    {
-        $this->preProcess($data);
-
-        /**
-         * Lazy processing
-         * Plugins may modify the data in place
-         * e.g. 
-         *  load a file and merge it with the data
-         *  remove/add/merge data from external sources
-         */
-        $this->parseNode($data, null, $data);
-
-        /**
-         * Resolve the data after all plugins have been applied
-         */
-        if ($resolveNow) {
-            $this->resolve($data, $data);
-        }
-
-        $this->postProcess($data);
-
-        return $this;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function prepare(array &$data): static
-    {
-        $this->parse($data, false);
-
-        return $this;
-    }
-
-    /**
      * Plug a node
      * 
      * @param array $node     The node to plug
@@ -148,104 +100,23 @@ class Parser implements ParserInterface
         foreach ($node as $key => &$value) {
             $curPath = (null !== $path ) ? "{$path}.{$key}" : $key;
 
-
-            if (
-                is_array($value) 
-                //&& !$this->isDirective($key)
-            ) {
+            if (is_array($value) ) {
                 $this->parseNode($value, $curPath, $subjectData);
-                //continue;
             }
-
 
             $value = //new Resolver(
                 //fn () => 
                 $pluginStack($value, $curPath, $subjectData)
             //)
+
             ;
 
             if (ParserInterface::VALUE_TO_REMOVE === $value) {
                 RecursiveDotApi::unset($node, $key);
                 continue;
             }
-            
+
         }
-
-        return $this;
-    }
-
-    /**
-     * Check if the key is a directive
-     * 
-     * @param string $key
-     * 
-     * @return bool
-     */
-    protected function isDirective(string $key): bool
-    {
-        return str_starts_with($key, '@');
-    }
-
-   /**
-    * {@inheritDoc}
-    */
-    public function resolve(array &$data): static
-    {
-/**
- @todo ??? 
- * */        
-return $this;
-
-        /**
-         * Use the RecursiveDotApi::walk() 
-         * to provide the dot-path to node instead of the simple key
-         */
-        RecursiveDotApi::walk(
-            $data,
-            $path ?? '',
-            function (mixed &$value, string $path) use (&$data) {
-                while ($value instanceof ResolvableInterface) {
-                    $value = $value();
-                }
-
-                if (ParserInterface::VALUE_TO_REMOVE === $value) {
-                    RecursiveDotApi::unset($data, $path);
-                }
-            }
-        );
-
-        //$this->postProcess($data);
-
-        return $this;
-    }
-
-    /**
-     * Pre-process the data
-     * 
-     * @param array $data
-     * 
-     * @return static
-     */
-    protected function preProcess(array &$data): static
-    {
-        return $this;
-    }
-
-    /**
-     * Post-process the data
-     * 
-     * @param array $data
-     * 
-     * @return static
-     */
-    protected function postProcess(array &$data): static
-    {
-        
-        foreach ($this->postDirectivesQueue as $directive) {
-            $directive();
-        }
-
-        $this->postDirectivesQueue = [];
 
         return $this;
     }

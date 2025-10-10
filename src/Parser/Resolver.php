@@ -1,6 +1,8 @@
 <?php
 namespace Concept\Config\Parser;
 
+use Concept\Config\ConfigInterface;
+
 class Resolver implements ResolvableInterface
 {
     
@@ -24,8 +26,8 @@ class Resolver implements ResolvableInterface
     /**
      * {@inheritDoc}
      */
-    public function __invoke(): mixed
+    public function __invoke(ConfigInterface $config): mixed
     {
-        return ($this->resolver)();
+        return ($this->resolver)($config);
     }
 }
