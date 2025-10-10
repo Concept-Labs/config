@@ -173,9 +173,9 @@ $config = new Config(
     data: [
         'app' => [
             'name' => 'MyApp',
-            'environment' => '@context.env',
-            'region' => '@context.region',
-            'tenant' => '@context.tenant'
+            'environment' => '${env}',
+            'region' => '${region}',
+            'tenant' => '${tenant}'
         ]
     ],
     context: [
@@ -230,12 +230,12 @@ class TenantConfig
         // Load base configuration
         $this->config = new Config([
             'app' => [
-                'name' => '@context.tenant.name',
-                'logo' => '@context.tenant.logo',
-                'theme' => '@context.tenant.theme'
+                'name' => '${tenant.name}',
+                'logo' => '${tenant.logo}',
+                'theme' => '${tenant.theme}'
             ],
             'database' => [
-                'name' => 'tenant_@context.tenant.id'
+                'name' => 'tenant_${tenant.id}'
             ]
         ]);
         
@@ -350,24 +350,24 @@ $config = new Config([
             'provider' => '@env(PAYMENT_PROVIDER)',
             'api_key' => '@env(PAYMENT_API_KEY)',
             'webhook_secret' => '@env(PAYMENT_WEBHOOK_SECRET)',
-            'mode' => '@context.app.mode'
+            'mode' => '${app.mode}'
         ],
         'email' => [
             'driver' => '@env(MAIL_DRIVER)',
             'host' => '@env(MAIL_HOST)',
             'from' => [
                 'address' => '@env(MAIL_FROM_ADDRESS)',
-                'name' => '@context.app.name'
+                'name' => '${app.name}'
             ]
         ],
         'storage' => [
-            'default' => '@context.storage.default_disk',
+            'default' => '${storage.default_disk}',
             'disks' => [
                 's3' => [
                     'key' => '@env(AWS_ACCESS_KEY_ID)',
                     'secret' => '@env(AWS_SECRET_ACCESS_KEY)',
-                    'region' => '@context.app.region',
-                    'bucket' => '@context.storage.s3_bucket'
+                    'region' => '${app.region}',
+                    'bucket' => '${storage.s3_bucket}'
                 ]
             ]
         ]
@@ -442,7 +442,7 @@ $config = new Config([
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         ]
     ],
-    'url' => 'https://@env(APP_DOMAIN)/@context.app.path'
+    'url' => 'https://@env(APP_DOMAIN)/${app.path}'
 ]);
 
 $config->withContext([
@@ -480,8 +480,8 @@ class ApiConfig extends BaseConfig
     {
         $this->config = new Config([
             'api' => [
-                'name' => '@context.app.name API',
-                'version' => '@context.app.version',
+                'name' => '${app.name} API',
+                'version' => '${app.version}',
                 'base_url' => '@env(API_BASE_URL)'
             ]
         ]);
@@ -596,8 +596,8 @@ class AppConfig
 $config = new Config([
     'cache' => [
         'driver' => '@env(CACHE_DRIVER)',
-        'ttl' => '@context.cache.ttl',
-        'prefix' => '@context.cache.prefix'
+        'ttl' => '${cache.ttl}',
+        'prefix' => '${cache.prefix}'
     ]
 ]);
 
