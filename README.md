@@ -291,6 +291,32 @@ The format is automatically determined by the Resource adapter system based on t
 
 - `concept-labs/arrays` - Array manipulation utilities
 
+### Running Tests
+
+This package includes comprehensive test coverage using both PHPUnit and Pest:
+
+```bash
+# Run all tests
+composer test
+
+# Run only unit tests
+composer test:unit
+
+# Run only feature tests
+composer test:feature
+
+# Run tests with coverage
+composer test:coverage
+```
+
+**Test Statistics:**
+- 143 tests covering all functionality
+- 259 assertions
+- PHPUnit and Pest test styles
+- Unit and integration tests
+
+See [tests/README.md](tests/README.md) for detailed testing documentation.
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
