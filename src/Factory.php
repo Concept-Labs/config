@@ -53,9 +53,14 @@ class Factory
      *
      * @return ConfigInterface
      */
-    public function create(): ConfigInterface
+    public function create(?string $customClass = null): ConfigInterface
     {
-        $config = $this->configClass ? new ($this->configClass)() : new Config();
+        $config = $this->configClass 
+            ? new ($this->configClass)() 
+            : ( $customClass && is_a($customClass, ConfigInterface::class, true)
+                ? new ($customClass)()
+                : new Config()
+            );
 
         $config->withContext($this->getContext());
 
