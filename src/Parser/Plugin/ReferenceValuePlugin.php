@@ -51,8 +51,6 @@ class ReferenceValuePlugin extends AbstractPlugin
             );
         }
 
-        }
-
         return $next($value, $path, $subjectData);
     }
 }
