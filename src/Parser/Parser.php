@@ -48,6 +48,9 @@ class Parser implements ParserInterface
     {
         $this->parseNode($data, null, $data);
 
+        // Process any lazy resolvers that were added during parsing
+        $this->getConfig()->resolveLazy();
+
         return $this;
     }
 

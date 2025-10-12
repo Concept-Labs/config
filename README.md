@@ -390,13 +390,15 @@ The parser uses a plugin system.
 
 ### Built-in Plugins
 
-- **Context:** `${context_value}`
+- **Context:** `${context_value}` or `${context_value|default}`
 - **Expressions:**
-    - **Env:** `@ENV(env_value)`
-    - **Reference:** `@ref(reference.path)`
-    - Custom plugins can be added
+    - **Env:** `@env(ENV_VAR)`
+    - **Reference (Node):** `#path.to.node` or `#path.to.node|default`
+    - **Reference (Value):** `#{path.to.value}` or `#{path.to.value|default}`
 - **Import:** `{"@import": "source"}`
+- **Extends:** `{"@extends": "path.to.node"}`
 - **Include:** `{"node": "@include(source)"}`
+- Custom plugins can be added
 
 ### Custom Plugins
 
