@@ -52,7 +52,7 @@ class ContextPlugin extends AbstractPlugin
                             return $contextValue;
                         }
                         // Use default if provided, else keep original
-                        return isset($matches[2]) ? $matches[2] : "### Context variable '{$matches[1]}' not found ###";
+                        return isset($matches[2]) ? $matches[2] : "### Reference '{$matches[1]}' not found ###";
                     },
                     $value
                 );
