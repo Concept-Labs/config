@@ -155,6 +155,8 @@ echo $config->get('fallback'); // '/default/path'
 
 Interpolates configuration values within strings using the `#{...}` syntax. This allows you to embed references within larger strings.
 
+**Lazy Resolution**: References are resolved lazily using a `Resolver`. This means the actual value lookup happens when you access the config value, not during parsing. This is important because referenced values might not exist yet when the parser encounters the reference.
+
 **Syntax**:
 ```php
 'text #{path.to.value} more text'
@@ -214,7 +216,7 @@ echo $config->get('message'); // 'Hello Guest!'
 echo $config->get('api');      // 'http://localhost:8080/api'
 ```
 
-**Note**: ReferenceValuePlugin only works with scalar values. If you reference an array or object, it will produce an error message. When values are interpolated into strings, they are converted to string type.
+**Note**: ReferenceValuePlugin only works with scalar values. If you reference an array or object, it will produce an error message. When values are interpolated into strings, they are converted to string type. The plugin uses lazy resolution, so referenced values are looked up when you call `get()`, not during parsing.
 
 ### ImportPlugin
 

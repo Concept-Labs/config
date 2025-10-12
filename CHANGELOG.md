@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **ReferenceValuePlugin Bug**: Fixed the bug where `preg_replace_callback` result was not being assigned back to the `$value` variable. Multiple interpolations in the same string now work correctly (e.g., `'http://#{host}:#{port}/api'`)
+- **ReferenceValuePlugin Lazy Resolution**: Implemented lazy resolution using `Resolver` to handle forward references and ensure values are looked up when accessed, not during parsing. This prevents issues when referenced values don't exist yet during initial parsing.
 
 ### Changed
 - **Plugin System Refactor**: Simplified and improved the reference syntax for configuration values

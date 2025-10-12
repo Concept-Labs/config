@@ -210,6 +210,8 @@ echo $config->get('backup'); // '/tmp/backup' (uses default if storage.path not 
 
 Value interpolation embeds configuration values within strings. Unlike node references, this only works with scalar values and allows multiple interpolations in the same string.
 
+**Lazy Resolution**: The plugin uses a `Resolver` to delay value lookup until the config value is accessed. This ensures that references work correctly even if the referenced values are defined later in the configuration or in a different order.
+
 ```php
 $config = new Config([
     'server' => [
@@ -241,7 +243,7 @@ echo $config->get('greeting'); // 'Hello Guest!'
 echo $config->get('api');      // 'http://localhost:8080/api'
 ```
 
-**Note**: When values are interpolated into strings, they are converted to string type. For example, a numeric port `8080` becomes the string `'8080'`.
+**Note**: When values are interpolated into strings, they are converted to string type. For example, a numeric port `8080` becomes the string `'8080'`. The lazy resolution ensures that circular or forward references can be handled gracefully.
 
 ### Context References
 

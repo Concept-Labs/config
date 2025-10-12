@@ -282,4 +282,24 @@ describe('Plugin integration', function () {
             ->and($config->get('services.external'))->toBeArray()
             ->and($config->get('services.external.host'))->toBe('api.example.com');
     });
+    
+    it('handles lazy resolution for forward references', function () {
+        // Test that references work even when defined before the referenced values
+        $config = new Config([
+            'app' => [
+                'url' => 'http://#{server.host}:#{server.port}/app',
+                'name' => '#{app.title}'
+            ],
+            'server' => [
+                'host' => 'example.com',
+                'port' => 8080
+            ]
+        ]);
+
+        $config->getParser()->registerPlugin(ReferenceValuePlugin::class, 998);
+        $config->getParser()->parse($config->dataReference());
+
+        // Values should be resolved lazily when accessed
+        expect($config->get('app.url'))->toBe('http://example.com:8080/app');
+    });
 });

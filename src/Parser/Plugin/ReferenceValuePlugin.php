@@ -29,25 +29,28 @@ class ReferenceValuePlugin extends AbstractPlugin
     public function __invoke(mixed $value, string $path, array &$subjectData, callable $next): mixed
     {
         if (is_string($value) && $this->match($value)) {
-            // Replace all #{...} patterns with their values
-            $value = preg_replace_callback(self::PATTERN, function ($matches) {
-                $ref = $matches[1];
-                $default = $matches[2] ?? null;
+            while (!$value instanceof Resolver && $this->match($value)) { //nested references
+                // Use a Resolver to delay execution until the value is actually needed
+                // Reference node may not exist yet during initial parsing
+                $value = new Resolver(
+                    fn() => preg_replace_callback(self::PATTERN, function ($matches)  {
+                        $ref = $matches[1];
+                        $default = $matches[2] ?? null;
 
-                if ($this->getConfig()->has($ref)) {
-                    $refValue = $this->getConfig()->get($ref);
-                    
-                    // Only scalar values can be interpolated
-                    if (is_array($refValue) || is_object($refValue)) {
-                        return "### Reference '$ref' is not a scalar value ###";
-                    }
-                    
-                    return $refValue;
-                } else {
-                    // Use default if provided, otherwise show error
-                    return $default ?? "### Reference '$ref' not found ###";
-                }
-            }, $value);
+                        if ($this->getConfig()->has($ref)) {
+                            $value = $this->getConfig()->get($ref);
+                            if (is_array($value) || is_object($value)) {
+                                $value = "### Reference '$ref' is not a scalar value ###";
+                            }
+                        } else {
+                            $value = $default ?? "### Reference '$ref' not found ###";
+                        }
+
+                        return $value;
+                    }, $value)
+                );
+            }
+
         }
 
         return $next($value, $path, $subjectData);
