@@ -7,8 +7,8 @@ use Concept\Config\Parser\Plugin\AbstractPlugin;
 
 class ContextPlugin extends AbstractPlugin
 {
-
-    const PATTERN = '/\${([^}]+)}/i';
+    // Matches ${variable} or ${variable|default}
+    const PATTERN = '/\${([a-zA-Z_][a-zA-Z0-9_]*)(?:\|([^}]+))?}/i';
 
     /**
      * Get the value from the context
@@ -46,8 +46,14 @@ class ContextPlugin extends AbstractPlugin
             while ($this->match($value)) { //replace all matches
                 $value = preg_replace_callback(
                     static::PATTERN,
-                    fn ($matches) => $this->getContextValue($matches[1])
-                        ?? str_replace('$', '$!', $matches[0]),
+                    function ($matches) {
+                        $contextValue = $this->getContextValue($matches[1]);
+                        if ($contextValue !== null) {
+                            return $contextValue;
+                        }
+                        // Use default if provided, else keep original
+                        return isset($matches[2]) ? $matches[2] : "### Context variable '{$matches[1]}' not found ###";
+                    },
                     $value
                 );
             }

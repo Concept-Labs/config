@@ -287,25 +287,28 @@ class Config implements ConfigInterface
         return $this;
     }
 
-    // protected function walkResolve(array &$data): static
-    // {
-    //     RecursiveApi::walk(
-    //         $data,
-    //         function (&$value) {
-    //             while ($value instanceof ResolvableInterface) {
-    //                 $value = $value($this);
-    //             }
-    //         }
-    //     );
+    protected function walkResolve(array &$data): static
+    {
+        RecursiveApi::walk(
+            $data,
+            function (&$value) {
+                while ($value instanceof ResolvableInterface) {
+                    $value = $value($this);
+                }
+            }
+        );
 
-    //     return $this;
-    // }
+        return $this;
+    }
 
     /**
      * {@inheritDoc}
      */
     public function export(string $target): static
     {
+
+        $this->walkResolve($this->getStorage()->reference());
+
         $this->getResource()
             ->write(
                 $target, $this->getStorage()->toArray()
