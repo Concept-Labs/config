@@ -88,30 +88,34 @@ echo $config->get('db.host'); // 'localhost'
 echo $config->get('db.port'); // 3306
 ```
 
-### ReferencePlugin
+### ReferenceNodePlugin
 
 **Priority**: 998  
-**Location**: `src/Parser/Plugin/Expression/ReferencePlugin.php`
+**Location**: `src/Parser/Plugin/ReferenceNodePlugin.php`
 
-Resolves references to other configuration values.
+Resolves references to entire configuration nodes. When a string value matches `#path.to.node`, it's replaced with the entire value (scalar, array, or object) from that configuration path.
 
 **Syntax**:
 ```php
-'@path.to.value'
+'#path.to.node'
+'#path.to.node|default'  // With fallback default value
 ```
 
 **Example**:
 ```json
 {
-  "paths": {
-    "root": "/var/www",
-    "public": "@paths.root/public",
-    "storage": "@paths.root/storage",
-    "cache": "@paths.storage/cache"
+  "database": {
+    "host": "localhost",
+    "port": 3306,
+    "credentials": {
+      "user": "admin",
+      "password": "secret"
+    }
   },
-  "urls": {
-    "api": "https://api.example.com",
-    "cdn": "@urls.api/cdn"
+  "services": {
+    "api": {
+      "connection": "#database.credentials"
+    }
   }
 }
 ```
@@ -119,16 +123,91 @@ Resolves references to other configuration values.
 **Usage**:
 ```php
 $config = new Config([
-    'app' => [
-        'name' => 'MyApp',
-        'title' => '@app.name Dashboard'
+    'paths' => [
+        'root' => '/var/www/app',
+        'storage' => '/var/www/app/storage'
+    ],
+    'backup' => [
+        'location' => '#paths.storage'
     ]
 ]);
 
 $config->getParser()->parse($config->dataReference());
 
-echo $config->get('app.title'); // 'MyApp Dashboard'
+echo $config->get('backup.location'); // '/var/www/app/storage'
 ```
+
+**With Default Values**:
+```php
+$config = new Config([
+    'fallback' => '#missing.path|/default/path'
+]);
+
+$config->getParser()->parse($config->dataReference());
+
+echo $config->get('fallback'); // '/default/path'
+```
+
+### ReferenceValuePlugin
+
+**Priority**: 998  
+**Location**: `src/Parser/Plugin/ReferenceValuePlugin.php`
+
+Interpolates configuration values within strings using the `#{...}` syntax. This allows you to embed references within larger strings.
+
+**Syntax**:
+```php
+'text #{path.to.value} more text'
+'#{path.to.value|default}'  // With fallback default value
+```
+
+**Example**:
+```json
+{
+  "app": {
+    "name": "MyApp",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "root": "/var/www",
+    "public": "#{paths.root}/public",
+    "cache": "#{paths.root}/storage/cache"
+  },
+  "display": {
+    "title": "#{app.name} v#{app.version}"
+  }
+}
+```
+
+**Usage**:
+```php
+$config = new Config([
+    'server' => [
+        'host' => 'localhost',
+        'port' => 8080
+    ],
+    'connection' => [
+        'url' => 'http://#{server.host}:#{server.port}/api'
+    ]
+]);
+
+$config->getParser()->parse($config->dataReference());
+
+echo $config->get('connection.url'); // 'http://localhost:8080/api'
+```
+
+**With Default Values**:
+```php
+$config = new Config([
+    'message' => 'Hello #{user.name|Guest}!'
+]);
+
+$config->getParser()->parse($config->dataReference());
+
+echo $config->get('message'); // 'Hello Guest!'
+```
+
+**Note**: ReferenceValuePlugin only works with scalar values. If you reference an array or object, it will produce an error message.
 
 ### ImportPlugin
 
@@ -212,9 +291,13 @@ Imports and merges external configuration files.
 **Priority**: 998  
 **Location**: `src/Parser/Plugin/ContextPlugin.php`
 
-Resolves values from the configuration context using the `${...}` syntax.
+Resolves values from the configuration context using the `${...}` syntax. Now supports default values with `${variable|default}` syntax.
 
-**Syntax**: `${path.to.context.value}`
+**Syntax**: 
+```php
+'${path.to.context.value}'
+'${variable|default}'  // With fallback default value
+```
 
 **Example**:
 ```php
@@ -240,7 +323,25 @@ echo $config->get('app.region');   // 'us-east-1'
 echo $config->get('app.database'); // 'app_acme'
 ```
 
-**Note**: Context variables can be used inline within strings and support multiple replacements in the same value.
+**With Default Values**:
+```php
+$config = new Config(
+    data: [
+        'app' => [
+            'mode' => '${mode|development}',
+            'debug' => '${debug|false}'
+        ]
+    ],
+    context: []  // Empty context
+);
+
+$config->getParser()->parse($config->dataReference());
+
+echo $config->get('app.mode');  // 'development' (uses default)
+echo $config->get('app.debug'); // 'false' (uses default)
+```
+
+**Note**: Context variables can be used inline within strings and support multiple replacements in the same value. If a context variable is not found and no default is provided, it will show an error message.
 
 ### CommentPlugin
 
@@ -257,12 +358,16 @@ Removes comment directives from configuration.
 }
 ```
 
-### ConfigValuePlugin
+## Reference Syntax Summary
 
-**Priority**: 994  
-**Location**: `src/Parser/Plugin/ConfigValuePlugin.php`
+The plugin system provides three different syntaxes for referencing values:
 
-Resolves config-specific value references.
+| Syntax | Plugin | Purpose | Example |
+|--------|--------|---------|---------|
+| `@env(VAR)` | EnvPlugin | Access environment variables | `@env(DB_HOST)` |
+| `${var}` or `${var\|default}` | ContextPlugin | Access context data with optional defaults | `${region}` or `${mode\|dev}` |
+| `#path.to.node` or `#path\|default` | ReferenceNodePlugin | Reference entire config nodes | `#database.config` |
+| `#{path}` or `#{path\|default}` | ReferenceValuePlugin | Interpolate values in strings | `http://#{host}:#{port}` |
 
 ## Creating Custom Plugins
 
@@ -448,10 +553,10 @@ $parser->registerPlugin(LastPlugin::class, priority: 100);
 **Default Priorities**:
 - EnvPlugin: 999
 - ContextPlugin: 998
-- ReferencePlugin: 998
+- ReferenceNodePlugin: 998
+- ReferenceValuePlugin: 998
 - ImportPlugin: 997
 - CommentPlugin: 996
-- ConfigValuePlugin: 994
 
 Choose priorities above or below these based on when you need your plugin to execute.
 

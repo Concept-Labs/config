@@ -129,15 +129,20 @@ if ($context->has('app')) {
 
 ## Variable Resolution
 
-The configuration system supports three types of variable resolution, each with its own syntax:
+The configuration system supports four types of variable resolution, each with its own syntax:
 
 | Type | Syntax | Purpose | Example |
 |------|--------|---------|---------|
 | Environment Variables | `@env(VAR)` | Access system environment variables | `@env(DB_HOST)` |
-| Config References | `@path.to.value` | Reference other configuration values | `@database.host` |
-| Context Variables | `${var}` | Access context data | `${region}` or `${user.name}` |
+| Context Variables | `${var}` or `${var\|default}` | Access context data with optional defaults | `${region}` or `${mode\|dev}` |
+| Node References | `#path` or `#path\|default` | Reference entire config nodes | `#database.config` |
+| Value Interpolation | `#{path}` or `#{path\|default}` | Interpolate values in strings | `http://#{host}:#{port}` |
 
-**Important**: Do not confuse the syntaxes! Context variables use `${...}`, NOT `@context.path`.
+**Important**: Each syntax serves a different purpose:
+- `@env(...)` - For environment variables
+- `${...}` - For context variables
+- `#path` - For replacing entire values with config nodes
+- `#{...}` - For embedding config values within strings
 
 ### Environment Variables
 
@@ -159,24 +164,86 @@ The configuration system supports three types of variable resolution, each with 
 3. `context.ENV.VARIABLE_NAME`
 4. Original value (unchanged)
 
-### Config References
+### Node References
 
-**Syntax**: `@path.to.value`
+**Syntax**: `#path.to.node` or `#path.to.node|default`
 
-```json
-{
-  "paths": {
-    "root": "/var/www/app",
-    "storage": "@paths.root/storage",
-    "cache": "@paths.storage/cache",
-    "logs": "@paths.storage/logs"
-  }
-}
+Node references replace an entire value with a reference to another configuration node. This is useful for reusing entire configuration blocks.
+
+```php
+$config = new Config([
+    'database' => [
+        'host' => 'localhost',
+        'port' => 3306,
+        'credentials' => [
+            'user' => 'admin',
+            'password' => 'secret'
+        ]
+    ],
+    'services' => [
+        'api' => [
+            'connection' => '#database.credentials'  // References entire credentials object
+        ]
+    ]
+]);
+
+$config->getParser()->parse($config->dataReference());
+
+// $config->get('services.api.connection') returns:
+// ['user' => 'admin', 'password' => 'secret']
+```
+
+**With Default Values**:
+```php
+$config = new Config([
+    'backup' => '#storage.path|/tmp/backup'
+]);
+
+$config->getParser()->parse($config->dataReference());
+
+echo $config->get('backup'); // '/tmp/backup' (uses default if storage.path not found)
+```
+
+### Value Interpolation
+
+**Syntax**: `#{path.to.value}` or `#{path.to.value|default}`
+
+Value interpolation embeds configuration values within strings. Unlike node references, this only works with scalar values and allows multiple interpolations in the same string.
+
+```php
+$config = new Config([
+    'server' => [
+        'host' => 'localhost',
+        'port' => 8080
+    ],
+    'api' => [
+        'url' => 'http://#{server.host}:#{server.port}/api',
+        'websocket' => 'ws://#{server.host}:#{server.port}/ws'
+    ]
+]);
+
+$config->getParser()->parse($config->dataReference());
+
+echo $config->get('api.url');       // 'http://localhost:8080/api'
+echo $config->get('api.websocket'); // 'ws://localhost:8080/ws'
+```
+
+**With Default Values**:
+```php
+$config = new Config([
+    'greeting' => 'Hello #{user.name|Guest}!',
+    'api' => 'http://#{host|localhost}:#{port|8080}'
+]);
+
+$config->getParser()->parse($config->dataReference());
+
+echo $config->get('greeting'); // 'Hello Guest!'
+echo $config->get('api');      // 'http://localhost:8080'
 ```
 
 ### Context References
 
-**Syntax**: `${path.to.context.value}`
+**Syntax**: `${path.to.context.value}` or `${variable|default}`
 
 Context variables are resolved using the **ContextPlugin**, which allows you to reference values stored in the configuration context. The syntax uses `${...}` with the path to the context value.
 
@@ -204,10 +271,29 @@ echo $config->get('app.environment'); // 'production'
 echo $config->get('app.database');    // 'app_acme-corp_production'
 ```
 
+**With Default Values**:
+```php
+$config = new Config(
+    data: [
+        'app' => [
+            'mode' => '${mode|development}',
+            'debug' => '${debug|false}'
+        ]
+    ],
+    context: []  // Empty context
+);
+
+$config->getParser()->parse($config->dataReference());
+
+echo $config->get('app.mode');  // 'development'
+echo $config->get('app.debug'); // 'false'
+```
+
 **Key Features**:
 - Multiple variables can be used in a single value
 - Variables can be combined with static text
 - Supports nested context paths (e.g., `${user.profile.name}`)
+- Supports default values with `|` separator
 
 ## Practical Examples
 
