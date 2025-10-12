@@ -65,8 +65,6 @@ describe('ReferenceNodePlugin', function () {
 
 describe('ReferenceValuePlugin', function () {
     it('interpolates single value with #{...} syntax', function () {
-        // Note: Due to a bug in ReferenceValuePlugin, multiple interpolations don't work correctly
-        // The preg_replace_callback result is not assigned back to $value
         $config = new Config([
             'server' => [
                 'host' => 'localhost',
@@ -80,7 +78,8 @@ describe('ReferenceValuePlugin', function () {
         $config->getParser()->registerPlugin(ReferenceValuePlugin::class, 998);
         $config->getParser()->parse($config->dataReference());
 
-        expect($config->get('api.singleRef'))->toBe(8080);
+        // When interpolated, numeric values become strings in string context
+        expect($config->get('api.singleRef'))->toBe('8080');
     });
 
     it('supports default values with #{path|default} syntax', function () {
@@ -91,12 +90,9 @@ describe('ReferenceValuePlugin', function () {
         $config->getParser()->registerPlugin(ReferenceValuePlugin::class, 998);
         $config->getParser()->parse($config->dataReference());
 
-        expect($config->get('greeting'))->toContain('Guest');
+        expect($config->get('greeting'))->toBe('Hello Guest!');
     });
 
-    // Skipping tests that would fail due to ReferenceValuePlugin bug
-    // where preg_replace_callback result is not assigned back to $value
-    
     it('handles multiple interpolations in same string', function () {
         $config = new Config([
             'app' => [
@@ -112,7 +108,7 @@ describe('ReferenceValuePlugin', function () {
         $config->getParser()->parse($config->dataReference());
 
         expect($config->get('display.title'))->toBe('MyApp v1.0.0');
-    })->skip('Plugin bug: preg_replace_callback result not assigned');
+    });
 
     it('combines interpolation with static text', function () {
         $config = new Config([
@@ -130,7 +126,24 @@ describe('ReferenceValuePlugin', function () {
 
         expect($config->get('locations.public'))->toBe('/var/www/public')
             ->and($config->get('locations.cache'))->toBe('/var/www/storage/cache');
-    })->skip('Plugin bug: preg_replace_callback result not assigned');
+    });
+    
+    it('interpolates values with #{...} syntax for URL construction', function () {
+        $config = new Config([
+            'server' => [
+                'host' => 'localhost',
+                'port' => 8080
+            ],
+            'api' => [
+                'url' => 'http://#{server.host}:#{server.port}/api'
+            ]
+        ]);
+
+        $config->getParser()->registerPlugin(ReferenceValuePlugin::class, 998);
+        $config->getParser()->parse($config->dataReference());
+
+        expect($config->get('api.url'))->toBe('http://localhost:8080/api');
+    });
 });
 
 describe('ContextPlugin with defaults', function () {
@@ -240,7 +253,7 @@ describe('Plugin integration', function () {
             ->and($config->get('api.key'))->toBe('secret123')
             ->and($config->get('services.external'))->toBeArray()
             ->and($config->get('services.external.host'))->toBe('api.example.com');
-    })->skip('ReferenceValuePlugin bug');
+    });
     
     it('combines environment, context, and node reference plugins', function () {
         putenv('API_KEY=secret456');

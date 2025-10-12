@@ -155,24 +155,31 @@ echo $config->get('fallback'); // '/default/path'
 
 Interpolates configuration values within strings using the `#{...}` syntax. This allows you to embed references within larger strings.
 
-**⚠️ Known Limitation**: Currently, due to an implementation bug, only single interpolations work correctly. Multiple interpolations in the same string (e.g., `'#{path1} and #{path2}'`) will not work as expected. Use single interpolations or ReferenceNodePlugin for now.
-
 **Syntax**:
 ```php
 'text #{path.to.value} more text'
 '#{path.to.value|default}'  // With fallback default value
 ```
 
-**Example (Single Interpolation)**:
+**Example**:
 ```json
 {
+  "app": {
+    "name": "MyApp",
+    "version": "1.0.0"
+  },
   "server": {
     "host": "localhost",
     "port": 8080
   },
   "api": {
-    "host_ref": "#{server.host}",
-    "port_ref": "#{server.port}"
+    "url": "http://#{server.host}:#{server.port}/api",
+    "title": "#{app.name} v#{app.version}"
+  },
+  "paths": {
+    "root": "/var/www",
+    "public": "#{paths.root}/public",
+    "cache": "#{paths.root}/storage/cache"
   }
 }
 ```
@@ -185,27 +192,29 @@ $config = new Config([
         'port' => 8080
     ],
     'connection' => [
-        'host': '#{server.host}'  // Single interpolation works
+        'url' => 'http://#{server.host}:#{server.port}/api'
     ]
 ]);
 
 $config->getParser()->parse($config->dataReference());
 
-echo $config->get('connection.host'); // 'localhost'
+echo $config->get('connection.url'); // 'http://localhost:8080/api'
 ```
 
 **With Default Values**:
 ```php
 $config = new Config([
-    'message' => 'Hello #{user.name|Guest}!'
+    'message' => 'Hello #{user.name|Guest}!',
+    'api' => 'http://#{host|localhost}:#{port|8080}/api'
 ]);
 
 $config->getParser()->parse($config->dataReference());
 
 echo $config->get('message'); // 'Hello Guest!'
+echo $config->get('api');      // 'http://localhost:8080/api'
 ```
 
-**Note**: ReferenceValuePlugin only works with scalar values. If you reference an array or object, it will produce an error message. For multiple interpolations or complex scenarios, consider using ReferenceNodePlugin to reference complete values and compose them in your application logic.
+**Note**: ReferenceValuePlugin only works with scalar values. If you reference an array or object, it will produce an error message. When values are interpolated into strings, they are converted to string type.
 
 ### ImportPlugin
 

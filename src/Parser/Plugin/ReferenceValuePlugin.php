@@ -21,7 +21,7 @@ class ReferenceValuePlugin extends AbstractPlugin
     }
 
     /**
-     * Replace @ref(...) with the corresponding reference.
+     * Replace #{...} with the corresponding reference value.
      * 
      * {@inheritDoc}
      * 
@@ -29,24 +29,25 @@ class ReferenceValuePlugin extends AbstractPlugin
     public function __invoke(mixed $value, string $path, array &$subjectData, callable $next): mixed
     {
         if (is_string($value) && $this->match($value)) {
-            while (!$value instanceof Resolver && $this->match($value)) { //nested references
-                preg_replace_callback(self::PATTERN, function ($matches) use (&$value) {
-                    $ref = $matches[1];
-                    $default = $matches[2] ?? null;
+            // Replace all #{...} patterns with their values
+            $value = preg_replace_callback(self::PATTERN, function ($matches) {
+                $ref = $matches[1];
+                $default = $matches[2] ?? null;
 
-                    if ($this->getConfig()->has($ref)) {
-                        $value = $this->getConfig()->get($ref);
-                        if (is_array($value) || is_object($value)) {
-                            $value = "### Reference '$ref' is not a scalar value ###";
-                        }
-                    } else {
-                        $value = new Resolver(
-                            fn() => $this->getConfig()->get($ref) ?? $default ?? "### Reference '$ref' not found ###"
-                        );
+                if ($this->getConfig()->has($ref)) {
+                    $refValue = $this->getConfig()->get($ref);
+                    
+                    // Only scalar values can be interpolated
+                    if (is_array($refValue) || is_object($refValue)) {
+                        return "### Reference '$ref' is not a scalar value ###";
                     }
-                }, $value);
-            }
-
+                    
+                    return $refValue;
+                } else {
+                    // Use default if provided, otherwise show error
+                    return $default ?? "### Reference '$ref' not found ###";
+                }
+            }, $value);
         }
 
         return $next($value, $path, $subjectData);

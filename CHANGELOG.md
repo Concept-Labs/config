@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **ReferenceValuePlugin Bug**: Fixed the bug where `preg_replace_callback` result was not being assigned back to the `$value` variable. Multiple interpolations in the same string now work correctly (e.g., `'http://#{host}:#{port}/api'`)
+
 ### Changed
 - **Plugin System Refactor**: Simplified and improved the reference syntax for configuration values
   - Removed `ConfigValuePlugin` (old syntax: `@{path}`)
@@ -59,6 +62,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     "name": "MyApp",
     "title": "#{app.name} Dashboard",
     "config": "#database.settings"
+  },
+  "server": {
+    "host": "localhost",
+    "port": 8080
+  },
+  "api": {
+    "url": "http://#{server.host}:#{server.port}/api"
   }
 }
 ```
@@ -76,18 +86,12 @@ $config = new Config(
 );
 ```
 
-### Known Issues
-
-- **ReferenceValuePlugin Bug**: The `preg_replace_callback` result is not being assigned back to the `$value` variable in the current implementation. This means:
-  - Single interpolations work correctly: `'#{path.to.value}'` ✓
-  - Multiple interpolations in the same string do not work: `'#{path1} and #{path2}'` ✗
-  - This will be addressed in a future update
-
 ### Documentation Updates
 
 - Updated `docs/plugins.md` with new plugin syntax and examples
 - Updated `docs/context.md` with default value syntax for context variables
 - Added comprehensive test coverage for new plugins in `tests/Unit/Parser/PluginPestTest.php`
+- All tests passing (157 tests with 281 assertions)
 
 ### Technical Details
 

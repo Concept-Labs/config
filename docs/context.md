@@ -208,9 +208,7 @@ echo $config->get('backup'); // '/tmp/backup' (uses default if storage.path not 
 
 **Syntax**: `#{path.to.value}` or `#{path.to.value|default}`
 
-**⚠️ Known Limitation**: Currently, only single interpolations work correctly due to an implementation bug. For multiple values in one string, use separate config keys or ReferenceNodePlugin.
-
-Value interpolation embeds configuration values within strings. Unlike node references, this only works with scalar values and currently supports single interpolations per string.
+Value interpolation embeds configuration values within strings. Unlike node references, this only works with scalar values and allows multiple interpolations in the same string.
 
 ```php
 $config = new Config([
@@ -219,29 +217,31 @@ $config = new Config([
         'port' => 8080
     ],
     'api' => [
-        'host_url': '#{server.host}',  // Single interpolation - works
-        'port_ref': '#{server.port}'   // Single interpolation - works
+        'url' => 'http://#{server.host}:#{server.port}/api',
+        'websocket' => 'ws://#{server.host}:#{server.port}/ws'
     ]
 ]);
 
 $config->getParser()->parse($config->dataReference());
 
-echo $config->get('api.host_url');  // 'localhost'
-echo $config->get('api.port_ref');  // 8080
+echo $config->get('api.url');       // 'http://localhost:8080/api'
+echo $config->get('api.websocket'); // 'ws://localhost:8080/ws'
 ```
 
 **With Default Values**:
 ```php
 $config = new Config([
     'greeting' => 'Hello #{user.name|Guest}!',
-    'api' => 'http://#{host|localhost}:#{port|8080}'  // Note: Multiple interpolations currently don't work
+    'api' => 'http://#{host|localhost}:#{port|8080}/api'
 ]);
 
 $config->getParser()->parse($config->dataReference());
 
 echo $config->get('greeting'); // 'Hello Guest!'
-// For multiple values, use separate configs or ReferenceNodePlugin
+echo $config->get('api');      // 'http://localhost:8080/api'
 ```
+
+**Note**: When values are interpolated into strings, they are converted to string type. For example, a numeric port `8080` becomes the string `'8080'`.
 
 ### Context References
 
