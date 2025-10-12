@@ -208,7 +208,9 @@ echo $config->get('backup'); // '/tmp/backup' (uses default if storage.path not 
 
 **Syntax**: `#{path.to.value}` or `#{path.to.value|default}`
 
-Value interpolation embeds configuration values within strings. Unlike node references, this only works with scalar values and allows multiple interpolations in the same string.
+**⚠️ Known Limitation**: Currently, only single interpolations work correctly due to an implementation bug. For multiple values in one string, use separate config keys or ReferenceNodePlugin.
+
+Value interpolation embeds configuration values within strings. Unlike node references, this only works with scalar values and currently supports single interpolations per string.
 
 ```php
 $config = new Config([
@@ -217,28 +219,28 @@ $config = new Config([
         'port' => 8080
     ],
     'api' => [
-        'url' => 'http://#{server.host}:#{server.port}/api',
-        'websocket' => 'ws://#{server.host}:#{server.port}/ws'
+        'host_url': '#{server.host}',  // Single interpolation - works
+        'port_ref': '#{server.port}'   // Single interpolation - works
     ]
 ]);
 
 $config->getParser()->parse($config->dataReference());
 
-echo $config->get('api.url');       // 'http://localhost:8080/api'
-echo $config->get('api.websocket'); // 'ws://localhost:8080/ws'
+echo $config->get('api.host_url');  // 'localhost'
+echo $config->get('api.port_ref');  // 8080
 ```
 
 **With Default Values**:
 ```php
 $config = new Config([
     'greeting' => 'Hello #{user.name|Guest}!',
-    'api' => 'http://#{host|localhost}:#{port|8080}'
+    'api' => 'http://#{host|localhost}:#{port|8080}'  // Note: Multiple interpolations currently don't work
 ]);
 
 $config->getParser()->parse($config->dataReference());
 
 echo $config->get('greeting'); // 'Hello Guest!'
-echo $config->get('api');      // 'http://localhost:8080'
+// For multiple values, use separate configs or ReferenceNodePlugin
 ```
 
 ### Context References

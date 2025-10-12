@@ -155,26 +155,24 @@ echo $config->get('fallback'); // '/default/path'
 
 Interpolates configuration values within strings using the `#{...}` syntax. This allows you to embed references within larger strings.
 
+**⚠️ Known Limitation**: Currently, due to an implementation bug, only single interpolations work correctly. Multiple interpolations in the same string (e.g., `'#{path1} and #{path2}'`) will not work as expected. Use single interpolations or ReferenceNodePlugin for now.
+
 **Syntax**:
 ```php
 'text #{path.to.value} more text'
 '#{path.to.value|default}'  // With fallback default value
 ```
 
-**Example**:
+**Example (Single Interpolation)**:
 ```json
 {
-  "app": {
-    "name": "MyApp",
-    "version": "1.0.0"
+  "server": {
+    "host": "localhost",
+    "port": 8080
   },
-  "paths": {
-    "root": "/var/www",
-    "public": "#{paths.root}/public",
-    "cache": "#{paths.root}/storage/cache"
-  },
-  "display": {
-    "title": "#{app.name} v#{app.version}"
+  "api": {
+    "host_ref": "#{server.host}",
+    "port_ref": "#{server.port}"
   }
 }
 ```
@@ -187,13 +185,13 @@ $config = new Config([
         'port' => 8080
     ],
     'connection' => [
-        'url' => 'http://#{server.host}:#{server.port}/api'
+        'host': '#{server.host}'  // Single interpolation works
     ]
 ]);
 
 $config->getParser()->parse($config->dataReference());
 
-echo $config->get('connection.url'); // 'http://localhost:8080/api'
+echo $config->get('connection.host'); // 'localhost'
 ```
 
 **With Default Values**:
@@ -207,7 +205,7 @@ $config->getParser()->parse($config->dataReference());
 echo $config->get('message'); // 'Hello Guest!'
 ```
 
-**Note**: ReferenceValuePlugin only works with scalar values. If you reference an array or object, it will produce an error message.
+**Note**: ReferenceValuePlugin only works with scalar values. If you reference an array or object, it will produce an error message. For multiple interpolations or complex scenarios, consider using ReferenceNodePlugin to reference complete values and compose them in your application logic.
 
 ### ImportPlugin
 
