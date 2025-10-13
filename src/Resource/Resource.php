@@ -175,6 +175,11 @@ class Resource implements ResourceInterface
      */
     protected function absolutePath(string $source): string
     {
+        // Handle empty source - throw exception instead of creating invalid path
+        if ($source === '') {
+            throw new InvalidArgumentException('Source path cannot be empty');
+        }
+        
         if (
             filter_var($source, FILTER_VALIDATE_URL) 
             || str_starts_with($source, DIRECTORY_SEPARATOR)
@@ -194,7 +199,14 @@ class Resource implements ResourceInterface
      */
     protected function cwd(): string
     {
-        return dirname($this->lastSource());
+        $lastSource = $this->lastSource();
+        
+        // If no source in stack, return current working directory
+        if ($lastSource === '') {
+            return getcwd() ?: '.';
+        }
+        
+        return dirname($lastSource);
     }
 
     /**

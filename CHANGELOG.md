@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **Resource path validation**: Added validation to prevent empty source paths from creating invalid adapter lookups
+  - `Resource::absolutePath()` now throws `InvalidArgumentException` for empty source strings
+  - `Resource::cwd()` now returns `getcwd()` when sourceStack is empty, preventing invalid path construction
+  - Prevents edge case where `//` could be normalized to `/` causing "No adapter found for /" errors
 - **ExtendsPlugin compatibility with @import/@include**: Fixed ExtendsPlugin to work correctly with @import and @include directives
   - Parser now tracks parse depth to prevent premature lazy resolver execution during nested parsing
   - ExtendsPlugin resolves immediately in nested contexts (imported/included files) and uses lazy resolution at top level
