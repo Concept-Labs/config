@@ -21,15 +21,11 @@ describe('ExtendsPlugin', function () {
         $config->getParser()->registerPlugin(ExtendsPlugin::class, 997);
         $config->getParser()->parse($config->dataReference());
 
-        expect($config->get('fooze'))
-            ->toBe([
-                'acme' => 'lorem',
-                'bar' => 'some',
-                'bar2' => 'another'
-            ])
-            ->and($config->get('fooze.acme'))->toBe('lorem')
+        // Check that all expected values are present (order doesn't matter)
+        expect($config->get('fooze.acme'))->toBe('lorem')
             ->and($config->get('fooze.bar'))->toBe('some')
-            ->and($config->get('fooze.bar2'))->toBe('another');
+            ->and($config->get('fooze.bar2'))->toBe('another')
+            ->and(count($config->get('fooze')))->toBe(3);
     });
 
     it('removes the @extends directive after processing', function () {
@@ -250,5 +246,98 @@ describe('ExtendsPlugin', function () {
                 'prop2' => 'value2'
             ])
             ->and($config->get('base'))->not->toHaveKey('prop3');
+    });
+
+    it('works with @include plugin when extends references parent config', function () {
+        // Create a temporary included file
+        $includedFile = '/tmp/test_include_extends_' . uniqid() . '.json';
+        file_put_contents($includedFile, json_encode([
+            '@extends' => 'defaults.db',
+            'dsn' => 'mysql:localhost'
+        ]));
+
+        try {
+            $config = new Config([
+                'defaults' => [
+                    'db' => [
+                        'db_name' => 'foo',
+                        'charset' => 'utf8mb4'
+                    ]
+                ],
+                'db' => "@include($includedFile)"
+            ]);
+
+            $config->getParser()->registerPlugin(\Concept\Config\Parser\Plugin\IncludePlugin::class, 998);
+            $config->getParser()->registerPlugin(ExtendsPlugin::class, 997);
+            $config->getParser()->parse($config->dataReference());
+
+            expect($config->get('db.db_name'))->toBe('foo')
+                ->and($config->get('db.charset'))->toBe('utf8mb4')
+                ->and($config->get('db.dsn'))->toBe('mysql:localhost');
+        } finally {
+            @unlink($includedFile);
+        }
+    });
+
+    it('works with @import plugin when extends references imported data', function () {
+        // Create a temporary imported file
+        $importedFile = '/tmp/test_import_extends_' . uniqid() . '.json';
+        file_put_contents($importedFile, json_encode([
+            'my-logger' => [
+                'preference' => 'My\\Logger\\FileLogger',
+                'level' => 'info'
+            ]
+        ]));
+
+        try {
+            $config = new Config([
+                '@import' => $importedFile,
+                'logger' => [
+                    '@extends' => 'my-logger',
+                    'path' => '/var/log/'
+                ]
+            ]);
+
+            $config->getParser()->registerPlugin(\Concept\Config\Parser\Plugin\Directive\ImportPlugin::class, 998);
+            $config->getParser()->registerPlugin(ExtendsPlugin::class, 997);
+            $config->getParser()->parse($config->dataReference());
+
+            expect($config->get('logger.preference'))->toBe('My\\Logger\\FileLogger')
+                ->and($config->get('logger.level'))->toBe('info')
+                ->and($config->get('logger.path'))->toBe('/var/log/');
+        } finally {
+            @unlink($importedFile);
+        }
+    });
+
+    it('works when extends references data imported after the extends directive', function () {
+        // Create a temporary imported file
+        $importedFile = '/tmp/test_forward_import_' . uniqid() . '.json';
+        file_put_contents($importedFile, json_encode([
+            'base-config' => [
+                'timeout' => 30,
+                'retries' => 3
+            ]
+        ]));
+
+        try {
+            $config = new Config([
+                'service' => [
+                    '@extends' => 'base-config',
+                    'endpoint' => 'https://api.example.com'
+                ],
+                '@import' => $importedFile
+            ]);
+
+            $config->getParser()->registerPlugin(\Concept\Config\Parser\Plugin\Directive\ImportPlugin::class, 998);
+            $config->getParser()->registerPlugin(ExtendsPlugin::class, 997);
+            $config->getParser()->parse($config->dataReference());
+
+            expect($config->get('service.timeout'))->toBe(30)
+                ->and($config->get('service.retries'))->toBe(3)
+                ->and($config->get('service.endpoint'))->toBe('https://api.example.com');
+        } finally {
+            @unlink($importedFile);
+        }
     });
 });

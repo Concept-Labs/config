@@ -39,6 +39,13 @@ interface ParserInterface
     public function registerPlugin(PluginInterface|callable $plugin, int $priority = 0): static;
 
     /**
+     * Get current parse depth
+     * 
+     * @return int
+     */
+    public function getParseDepth(): int;
+
+    /**
      * Get a plugin by name
      * 
      * @param string $plugin The name of the plugin

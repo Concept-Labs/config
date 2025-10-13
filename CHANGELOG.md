@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **ExtendsPlugin compatibility with @import/@include**: Fixed ExtendsPlugin to work correctly with @import and @include directives
+  - Parser now tracks parse depth to prevent premature lazy resolver execution during nested parsing
+  - ExtendsPlugin resolves immediately in nested contexts (imported/included files) and uses lazy resolution at top level
+  - Fixed merge mode to use MERGE_OVERWRITE to ensure extending node properties override base properties
+  - Added comprehensive tests for @extends with @import/@include scenarios
+
 ### Added
 - **ExtendsPlugin**: New plugin for configuration inheritance
   - Use `@extends` directive to inherit properties from another configuration node

@@ -419,6 +419,64 @@ echo $config->get('child.prop1'); // 'value1'
 echo $config->get('child.extra'); // 'value'
 ```
 
+**Working with @import and @include**:
+
+The `@extends` plugin is fully compatible with `@import` and `@include` directives:
+
+*Example 1: Extends in included file*
+```php
+// db.json
+{
+  "@extends": "defaults.db",
+  "dsn": "mysql:localhost"
+}
+
+// config.json
+{
+  "defaults": {
+    "db": {
+      "db_name": "foo"
+    }
+  },
+  "db": "@include(db.json)"
+}
+```
+
+*Example 2: Extends referencing imported data*
+```php
+// loggers.json
+{
+  "my-logger": {
+    "preference": "My\\Logger\\FileLogger"
+  }
+}
+
+// config.json
+{
+  "@import": "loggers.json",
+  "logger": {
+    "@extends": "my-logger",
+    "path": "/var/log/"
+  }
+}
+```
+
+*Example 3: Extends before import (forward reference)*
+```php
+{
+  "logger": {
+    "@extends": "my-logger",  // References data loaded later
+    "path": "/var/log/"
+  },
+  "@import": "loggers.json"    // Loads my-logger definition
+}
+```
+
+All these scenarios work correctly because:
+- In nested parsing (from @import/@include), @extends resolves immediately within the local context
+- In top-level parsing, @extends uses lazy resolution for forward references
+- The parser tracks parse depth to handle nested imports correctly
+
 **Important Notes**:
 - The referenced path must point to an array/object, not a scalar value
 - If the referenced path doesn't exist, an `InvalidArgumentException` is thrown
