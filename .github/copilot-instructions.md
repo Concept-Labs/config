@@ -1,3 +1,6 @@
+# when create branch for new features it should be named in next convetion: "feature/human-readable-name"
+
+# when create for bug fixes use convention: "bugfix/human-readable_name"
 
 # Code should be clear, well documented, clear PHPDocs.
 
