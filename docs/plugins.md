@@ -295,6 +295,194 @@ Imports and merges external configuration files.
 }
 ```
 
+### ExtendsPlugin
+
+**Priority**: 997  
+**Location**: `src/Parser/Plugin/Directive/ExtendsPlugin.php`
+
+Extends a configuration node with properties from another node, creating inheritance-like behavior.
+
+**Syntax**:
+```json
+{
+  "@extends": "path.to.node"
+}
+```
+
+**How it works**:
+- The `@extends` directive copies all properties from the referenced node into the current node
+- Existing properties in the current node are preserved (not overwritten)
+- The `@extends` directive is removed after processing
+- Supports forward references (can reference nodes defined later in the configuration)
+
+**Example**:
+
+```php
+$config = new Config([
+    'database' => [
+        'defaults' => [
+            'host' => 'localhost',
+            'port' => 3306,
+            'charset' => 'utf8mb4'
+        ]
+    ],
+    'production' => [
+        '@extends' => 'database.defaults',
+        'host' => 'prod.example.com',
+        'password' => 'secret'
+    ]
+]);
+
+$config->getParser()->registerPlugin(ExtendsPlugin::class, 997);
+$config->getParser()->parse($config->dataReference());
+
+echo $config->get('production.host');     // 'prod.example.com' (overridden)
+echo $config->get('production.port');     // 3306 (inherited)
+echo $config->get('production.charset');  // 'utf8mb4' (inherited)
+echo $config->get('production.password'); // 'secret' (own property)
+```
+
+**Result**:
+```json
+{
+  "database": {
+    "defaults": {
+      "host": "localhost",
+      "port": 3306,
+      "charset": "utf8mb4"
+    }
+  },
+  "production": {
+    "host": "prod.example.com",
+    "port": 3306,
+    "charset": "utf8mb4",
+    "password": "secret"
+  }
+}
+```
+
+**Real-world example** (Multiple environments):
+```php
+$config = new Config([
+    'app' => [
+        'base' => [
+            'debug' => false,
+            'timezone' => 'UTC',
+            'locale' => 'en',
+            'cache' => [
+                'driver' => 'file'
+            ]
+        ]
+    ],
+    'environments' => [
+        'development' => [
+            '@extends' => 'app.base',
+            'debug' => true,
+            'cache' => [
+                'driver' => 'array'
+            ]
+        ],
+        'production' => [
+            '@extends' => 'app.base',
+            'cache' => [
+                'driver' => 'redis',
+                'prefix' => 'prod_'
+            ]
+        ],
+        'testing' => [
+            '@extends' => 'app.base',
+            'debug' => true
+        ]
+    ]
+]);
+```
+
+**Forward References**:
+The plugin supports forward references using lazy resolution:
+
+```php
+$config = new Config([
+    'child' => [
+        '@extends' => 'base',
+        'extra' => 'value'
+    ],
+    'base' => [
+        'prop1' => 'value1',
+        'prop2' => 'value2'
+    ]
+]);
+
+$config->getParser()->registerPlugin(ExtendsPlugin::class, 997);
+$config->getParser()->parse($config->dataReference());
+
+echo $config->get('child.prop1'); // 'value1'
+echo $config->get('child.extra'); // 'value'
+```
+
+**Working with @import and @include**:
+
+The `@extends` plugin is fully compatible with `@import` and `@include` directives:
+
+*Example 1: Extends in included file*
+```php
+// db.json
+{
+  "@extends": "defaults.db",
+  "dsn": "mysql:localhost"
+}
+
+// config.json
+{
+  "defaults": {
+    "db": {
+      "db_name": "foo"
+    }
+  },
+  "db": "@include(db.json)"
+}
+```
+
+*Example 2: Extends referencing imported data*
+```php
+// loggers.json
+{
+  "my-logger": {
+    "preference": "My\\Logger\\FileLogger"
+  }
+}
+
+// config.json
+{
+  "@import": "loggers.json",
+  "logger": {
+    "@extends": "my-logger",
+    "path": "/var/log/"
+  }
+}
+```
+
+*Example 3: Extends before import (forward reference)*
+```php
+{
+  "logger": {
+    "@extends": "my-logger",  // References data loaded later
+    "path": "/var/log/"
+  },
+  "@import": "loggers.json"    // Loads my-logger definition
+}
+```
+
+All these scenarios work correctly because:
+- In nested parsing (from @import/@include), @extends resolves immediately within the local context
+- In top-level parsing, @extends uses lazy resolution for forward references
+- The parser tracks parse depth to handle nested imports correctly
+
+**Important Notes**:
+- The referenced path must point to an array/object, not a scalar value
+- If the referenced path doesn't exist, an `InvalidArgumentException` is thrown
+- Properties in the extending node always take precedence over inherited properties
+- The base node remains unchanged after extension
+
 ### ContextPlugin
 
 **Priority**: 998  
@@ -565,6 +753,7 @@ $parser->registerPlugin(LastPlugin::class, priority: 100);
 - ReferenceNodePlugin: 998
 - ReferenceValuePlugin: 998
 - ImportPlugin: 997
+- ExtendsPlugin: 997
 - CommentPlugin: 996
 
 Choose priorities above or below these based on when you need your plugin to execute.

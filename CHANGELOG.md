@@ -8,6 +8,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **ExtendsPlugin compatibility with @import/@include**: Fixed ExtendsPlugin to work correctly with @import and @include directives
+  - Parser now tracks parse depth to prevent premature lazy resolver execution during nested parsing
+  - ExtendsPlugin resolves immediately in nested contexts (imported/included files) and uses lazy resolution at top level
+  - Fixed merge mode to use MERGE_OVERWRITE to ensure extending node properties override base properties
+  - Added comprehensive tests for @extends with @import/@include scenarios
+
+### Added
+- **ExtendsPlugin**: New plugin for configuration inheritance
+  - Use `@extends` directive to inherit properties from another configuration node
+  - Syntax: `"@extends": "path.to.node"`
+  - Supports forward references with lazy resolution
+  - Properties in the extending node take precedence over inherited properties
+  - Comprehensive test coverage with 11 tests
+- **resolveLazy() method**: Added public method to ConfigInterface to process lazy resolvers
+  - Allows manual triggering of lazy resolver processing when needed
+
+### Changed
+- **Parser**: Parser now automatically calls `resolveLazy()` after parsing to process lazy resolvers
+  - This ensures plugins using lazy resolvers (like ExtendsPlugin) work correctly
+  - Maintains backward compatibility with existing code
+
+### Fixed
 - **ReferenceValuePlugin Bug**: Fixed the bug where `preg_replace_callback` result was not being assigned back to the `$value` variable. Multiple interpolations in the same string now work correctly (e.g., `'http://#{host}:#{port}/api'`)
 - **ReferenceValuePlugin Lazy Resolution**: Implemented lazy resolution using `Resolver` to handle forward references and ensure values are looked up when accessed, not during parsing. This prevents issues when referenced values don't exist yet during initial parsing.
 
@@ -105,4 +127,5 @@ $config = new Config(
   - `ReferenceNodePlugin`: 998
   - `ReferenceValuePlugin`: 998
   - `ImportPlugin`: 997
+  - `ExtendsPlugin`: 997
   - `CommentPlugin`: 996

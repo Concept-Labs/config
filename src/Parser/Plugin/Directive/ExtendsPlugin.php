@@ -50,38 +50,100 @@ class ExtendsPlugin extends AbstractPlugin
     {
         if ($this->match($path)) {
             
-            $this->getConfig()->addLazyResolver(
-                new Resolver(
-                    function ($config) use ($path, $value, &$subjectData) {
-                        $extendsPath = $value;
-
-                        /**
-                         * Get the extends data
-                         */
-                        $extendsData = $config->get($extendsPath);
-
-                        if (!is_array($extendsData)) {
-                            throw new \InvalidArgumentException(sprintf(
-                                'The path "%s" does not point to a valid configuration array.',
-                                $extendsPath
-                            ));
-                        }
-
-                        $pathTo = substr($path, 0, strrpos($path, '.@extends'));
-
-                        /**
-                         * Merge the extends data into the subject data
-                         */
-                        RecursiveApi::mergeTo(
-                            $subjectData,
-                            $extendsData,
-                            $pathTo,
-                            RecursiveApi::MERGE_PRESERVE
+            // Check if we're in a nested parse (from @import/@include)
+            $isNestedParse = $this->getConfig()->getParser()->getParseDepth() > 1;
+            
+            if ($isNestedParse) {
+                // In nested parse, resolve immediately within local context
+                // because the data will be merged into parent context
+                $extendsPath = $value;
+                
+                // Get extends data from config (might be in parent context already)
+                $extendsData = $this->getConfig()->get($extendsPath);
+                
+                if (!is_array($extendsData)) {
+                    throw new \InvalidArgumentException(sprintf(
+                        'The path "%s" does not point to a valid configuration array.',
+                        $extendsPath
+                    ));
+                }
+                
+                // Calculate the target path in local context
+                $pathTo = substr($path, 0, strrpos($path, '.@extends'));
+                if ($pathTo === false || $pathTo === '') {
+                    // @extends is at root of this file
+                    // Start with extends data, merge current data on top (overwriting with current values)
+                    $result = $extendsData;
+                    RecursiveApi::merge(
+                        $result,
+                        $subjectData,
+                        RecursiveApi::MERGE_OVERWRITE
+                    );
+                    $subjectData = $result;
+                } else {
+                    // @extends is nested
+                    // Get current data at path
+                    $currentData = RecursiveDotApi::get($subjectData, $pathTo) ?? [];
+                    // Start with extends data, merge current data on top
+                    $result = $extendsData;
+                    if (is_array($currentData)) {
+                        RecursiveApi::merge(
+                            $result,
+                            $currentData,
+                            RecursiveApi::MERGE_OVERWRITE
                         );
-
                     }
-                )
+                    // Set the result back
+                    RecursiveDotApi::set($subjectData, $pathTo, $result);
+                }
+            } else {
+                // In top-level parse, use lazy resolution for forward references
+                $this->getConfig()->addLazyResolver(
+                    new Resolver(
+                        function ($config) use ($path, $value) {
+                            $extendsPath = $value;
+
+                            /**
+                             * Get the extends data
+                             */
+                            $extendsData = $config->get($extendsPath);
+
+                            if (!is_array($extendsData)) {
+                                throw new \InvalidArgumentException(sprintf(
+                                    'The path "%s" does not point to a valid configuration array.',
+                                    $extendsPath
+                                ));
+                            }
+
+                            // Calculate the target path (remove .@extends from the end)
+                            $pathTo = substr($path, 0, strrpos($path, '.@extends'));
+
+                            /**
+                             * Get current data at the target path
+                             */
+                            $currentData = $config->get($pathTo);
+                            if (!is_array($currentData)) {
+                                $currentData = [];
+                            }
+
+                            /**
+                             * Start with extends data, merge current data on top (overwriting with current values)
+                             */
+                            $mergedData = $extendsData;
+                            RecursiveApi::merge(
+                                $mergedData,
+                                $currentData,
+                                RecursiveApi::MERGE_OVERWRITE
+                            );
+
+                            /**
+                             * Set the merged data back to the config
+                             */
+                            $config->set($pathTo, $mergedData);
+                        }
+                    )
                 );
+            }
             
             //let the parser know that the value has been removed
             return ParserInterface::VALUE_TO_REMOVE;

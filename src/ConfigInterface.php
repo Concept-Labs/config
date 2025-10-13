@@ -174,6 +174,13 @@ interface ConfigInterface extends IteratorAggregate //, DotArrayInterface
      * @return static
      */
     public function addLazyResolver(ResolvableInterface $resolver): static;
+
+    /**
+     * Process all pending lazy resolvers
+     * 
+     * @return static
+     */
+    public function resolveLazy(): static;
    
 }
     

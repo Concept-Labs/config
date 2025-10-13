@@ -323,6 +323,14 @@ class Config implements ConfigInterface
         return $this;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    public function resolveLazy(): static
+    {
+        return $this->processLazyResolvers();
+    }
+
     protected function processLazyResolvers(): static
     {
         foreach ($this->lazyResolvers as $resolver) {

@@ -25,6 +25,13 @@ class Parser implements ParserInterface
     private $pluginMiddlewareStack = null;
 
     /**
+     * Track parse depth to prevent premature lazy resolver processing
+     * 
+     * @var int
+     */
+    private int $parseDepth = 0;
+
+    /**
      * 
      */
     public function __construct(private ConfigInterface $config)
@@ -46,9 +53,21 @@ class Parser implements ParserInterface
      */
     public function parse(array &$data): static
     {
-        $this->parseNode($data, null, $data);
+        $this->parseDepth++;
+        
+        try {
+            $this->parseNode($data, null, $data);
 
-        return $this;
+            // Only process lazy resolvers at the top level (depth 1)
+            // This prevents premature resolution during nested parsing from @import/@include
+            if ($this->parseDepth === 1) {
+                $this->getConfig()->resolveLazy();
+            }
+
+            return $this;
+        } finally {
+            $this->parseDepth--;
+        }
     }
 
     /**
@@ -78,6 +97,14 @@ class Parser implements ParserInterface
         ksort($this->plugins);
 
         return $this;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function getParseDepth(): int
+    {
+        return $this->parseDepth;
     }
 
     /**
