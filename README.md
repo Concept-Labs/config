@@ -5,7 +5,7 @@ A powerful, flexible, and extensible configuration management library for PHP 8.
 
 [![PHP Version](https://img.shields.io/badge/php-%3E%3D8.2-blue.svg)](https://www.php.net/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![CONCEPT](https://img.shields.io/badge/CONCEPT-Ecosystem-violet.svg)](https://github.com/Concept-Labs)
+[![Concept](https://img.shields.io/badge/concept-ecosystem-violet.svg)](https://github.com/Concept-Labs)
 
 ## 🌟 Features
 
