@@ -257,4 +257,4 @@ class ValidatePlugin implements PluginInterface
 }
 ```
 
-Дивіться [повну документацію](../docs/plugins.md) для детальніших прикладів.
+Дивіться повну документацію для детальніших прикладів.

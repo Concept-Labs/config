@@ -397,4 +397,4 @@ throw new InvalidArgumentException('Invalid path');
 throw new RuntimeException('Failed to load config');
 ```
 
-Дивіться [повну документацію](../docs/api-reference.md) для детальнішої інформації.
+Дивіться повну документацію для детальнішої інформації.

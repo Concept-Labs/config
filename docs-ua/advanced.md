@@ -478,4 +478,4 @@ class ErrorHandlingConfig implements ConfigInterface
 }
 ```
 
-Дивіться [повну документацію](../docs/advanced.md) для більше розширених тем.
+Дивіться повну документацію для більше розширених тем.
