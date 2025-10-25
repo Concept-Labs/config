@@ -93,7 +93,7 @@ class ImportPlugin extends AbstractPlugin
         if (!isset($parsed['scheme'])) {
             
             $o = $source;
-            $source = glob($source, GLOB_BRACE);
+            $source = glob($source, /* GLOB_BRACE*/1024); //GLOB_BRACE is not available on some systems (Windows)
             if (empty($source)) {
                 trigger_error("No files found for pattern: $o", E_USER_NOTICE);
             }

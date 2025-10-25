@@ -1,7 +1,6 @@
 <?php
 namespace Concept\Config\Facade;
 
-use Concept\Config\ConfigInterface;
 use Concept\Config\Parser\Plugin\ContextPlugin;
 use Concept\Config\Parser\Plugin\Directive\ImportPlugin;
 use Concept\Config\Parser\Plugin\Expression\EnvPlugin;
@@ -14,7 +13,8 @@ use Concept\Config\Parser\Plugin\ReferenceValuePlugin;
 class Config
 {
     /**
-     * Create 
+     * Create the configuration factory with common plugins pre-registered
+     * So developer doesn't have to remember to add them each time
      * 
      * @param array|string $source File path or glob pattern
      * @param array $context Context variables to be used in the configuration
