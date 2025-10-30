@@ -16,9 +16,44 @@ A powerful, flexible, and extensible configuration management library for PHP 8.
 - **Import/Include System**: Modular configuration with file imports
 - **Context Management**: Flexible context for runtime variable resolution
 - **Lazy Resolution**: Efficient lazy evaluation of configuration values
-- **Factory Pattern**: Multiple factory methods for different use cases
+- **Factory Pattern**: Dependency injection support with custom factories
+- **SOLID Principles**: Clean architecture following best practices
 - **Facade Interface**: Simplified configuration creation with pre-configured plugins
 - **Type Safe**: Full PHP 8.2+ type hints and strict typing
+- **100% Backward Compatible**: All improvements maintain existing API
+
+## 🏗️ Architecture
+
+Built with **SOLID principles** in mind:
+
+- **S**ingle Responsibility: Each class has one clear purpose
+- **O**pen/Closed: Extensible through factories and plugins without modification
+- **L**iskov Substitution: Any factory can replace defaults
+- **I**nterface Segregation: Focused interfaces, no fat interfaces
+- **D**ependency Inversion: Depends on abstractions, not concrete classes
+
+### Dependency Injection
+
+Customize components through optional factory injection:
+
+```php
+use Concept\Config\Config;
+use Concept\Config\Factory\DefaultStorageFactory;
+use Concept\Config\Factory\DefaultResourceFactory;
+use Concept\Config\Factory\DefaultParserFactory;
+
+// Use custom factories for complete control
+$config = new Config(
+    data: ['app' => 'MyApp'],
+    context: ['env' => 'production'],
+    storageFactory: new CustomStorageFactory(),
+    resourceFactory: new CustomResourceFactory(),
+    parserFactory: new CustomParserFactory()
+);
+
+// Or use defaults - factories are optional
+$config = new Config(['app' => 'MyApp']);
+```
 
 ## 📦 Installation
 

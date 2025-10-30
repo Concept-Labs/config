@@ -3,12 +3,35 @@ namespace Concept\Config\Resource;
 
 use Concept\Config\Resource\Exception\InvalidArgumentException;
 
+/**
+ * Adapter manager implementation
+ * 
+ * Manages a registry of file format adapters and selects the appropriate
+ * adapter for a given URI. Adapters are registered with priorities to
+ * control the order in which they are checked.
+ * 
+ * The manager uses a lazy instantiation pattern, creating adapter instances
+ * only when needed and caching them for reuse.
+ */
 class AdapterManager implements AdapterManagerInterface
 {
+    /**
+     * Registered adapter classes organized by priority
+     * 
+     * @var array<int, array<int, string>>
+     */
     private array $adapters = [];
+
+    /**
+     * Cache of instantiated adapters
+     * 
+     * @var array<string, AdapterInterface>
+     */
     private array $cache = [];
 
     /**
+     * Register an adapter class with a priority
+     * 
      * {@inheritDoc}
      */
     public function registerAdapter(string $adapter, int $priority = 0): static
@@ -31,6 +54,11 @@ class AdapterManager implements AdapterManagerInterface
     }
 
     /**
+     * Get an adapter for a URI
+     * 
+     * Iterates through registered adapters in priority order (highest first)
+     * and returns the first adapter that supports the URI.
+     * 
      * {@inheritDoc}
      */
     public function getAdapter(string $uri): AdapterInterface
@@ -47,11 +75,15 @@ class AdapterManager implements AdapterManagerInterface
     }
 
     /**
-     * Get an adapter instance.
+     * Get or create an adapter instance
      *
-     * @param string $adapter
+     * Returns a cached instance if available, otherwise creates and caches
+     * a new instance. This ensures only one instance of each adapter class
+     * is created.
+     *
+     * @param string $adapter The adapter class name
      * 
-     * @return AdapterInterface
+     * @return AdapterInterface The adapter instance
      */
     protected function getAdapterInstance(string $adapter): AdapterInterface
     {

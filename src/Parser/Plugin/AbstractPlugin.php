@@ -3,24 +3,38 @@ namespace Concept\Config\Parser\Plugin;
 
 use Concept\Config\ConfigInterface;
 
+/**
+ * Abstract base class for parser plugins
+ * 
+ * Provides common functionality for plugins including optional access to
+ * the config instance. Plugins that don't need config can work without it,
+ * maintaining loose coupling.
+ */
 abstract class AbstractPlugin implements PluginInterface
 {
+    /**
+     * Optional config instance
+     * 
+     * @var ConfigInterface|null
+     */
+    private ?ConfigInterface $config = null;
 
     /**
      * Constructor
      * 
-     * @param ConfigInterface $config
+     * @param ConfigInterface|null $config Optional config instance
      */
-    public function __construct(private ConfigInterface $config)
+    public function __construct(?ConfigInterface $config = null)
     {
+        $this->config = $config;
     }
 
     /**
-     * Get the config
+     * Get the config instance
      * 
-     * @return ConfigInterface
+     * @return ConfigInterface|null The config instance or null if not available
      */
-    protected function getConfig(): ConfigInterface
+    protected function getConfig(): ?ConfigInterface
     {
         return $this->config;
     }
