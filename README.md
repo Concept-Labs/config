@@ -20,7 +20,6 @@ A powerful, flexible, and extensible configuration management library for PHP 8.
 - **Factory Pattern**: Multiple factory methods for different use cases
 - **Facade Interface**: Simplified configuration creation with pre-configured plugins
 - **Type Safe**: Full PHP 8.2+ type hints and strict typing
-- **Comprehensive Testing**: 185 tests with 354 assertions (100% pass rate)
 
 ## 📦 Installation
 
@@ -100,7 +99,7 @@ $config->load('config/app.json');
 // PHP array format
 $config->load('config/database.php');
 
-// YAML format (requires YAML extension or symfony/yaml)
+// YAML format (requires PHP YAML extension or symfony/yaml package)
 $config->load('config/services.yaml');
 
 // XML format
@@ -391,11 +390,12 @@ composer test:feature
 composer test:coverage
 ```
 
-**Test Statistics:**
-- 143 tests covering all functionality
-- 259 assertions
-- PHPUnit and Pest test styles
-- Unit and integration tests
+**Test Coverage:**
+- 185 tests with 354 assertions
+- 100% pass rate
+- Comprehensive unit and integration tests
+- Tests for all adapters (JSON, PHP, YAML, XML)
+- Tests for all plugins and features
 
 See [tests/README.md](tests/README.md) for detailed testing documentation.
 
