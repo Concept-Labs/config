@@ -7,7 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **YAML Adapter**: Full support for YAML configuration files
+  - `YamlAdapter` supports both native YAML PHP extension and symfony/yaml package
+  - Auto-detection of `.yml` and `.yaml` file extensions
+  - Full encode/decode support for reading and writing YAML files
+  - 4 comprehensive tests covering all functionality
+- **XML Adapter**: Full support for XML configuration files  
+  - `XmlAdapter` uses native PHP SimpleXML for parsing
+  - Auto-detection of `.xml` file extension
+  - Full encode/decode support with proper XML formatting
+  - Handles sequential arrays, nested structures, and special characters
+  - 9 comprehensive tests covering all functionality
+- **Multi-format Support**: Config library now supports JSON, PHP, YAML, and XML formats
+  - Automatic format detection based on file extension
+  - Seamless reading and writing across all formats
+  - All formats work with all plugins (@import, @include, @extends, etc.)
+
 ### Fixed
+- **Parser nested plugin support**: Fixed Parser to re-parse array values returned by plugins
+  - When a plugin transforms a string value into an array (like @include), the array is now parsed for nested plugins
+  - This allows @include to load files containing @extends and other directives
+  - Fixes interaction between @include and @extends plugins
+- **IncludePlugin parsing**: Fixed IncludePlugin to not parse included data immediately
+  - Included data is now parsed in the context of the parent configuration
+  - Allows plugins like @extends in included files to access parent config data
+  - Prevents incorrect data merging when included files have @extends directives
+- **ExtendsPlugin merge operation**: Fixed RecursiveApi::merge usage
+  - RecursiveApi::merge modifies the first argument by reference and returns null
+  - ExtendsPlugin now correctly uses the modified array instead of the return value
+  - Properly merges base configuration with extending configuration
+- **Parser lazy resolution**: Added automatic resolveLazy() call after parse completes
+  - Ensures lazy resolvers (used by @extends) are processed after parsing
+  - Only triggers at parse depth 0 to avoid issues with nested parsing
+  
+### Changed
+- **Test Coverage**: Increased from 172 to 185 tests (354 assertions)
+  - Added comprehensive adapter tests for YAML and XML
+  - All tests passing with 100% pass rate
+
+### Fixed (Previous)
 - **Resource path validation**: Added validation to prevent empty source paths from creating invalid adapter lookups
   - `Resource::absolutePath()` now throws `InvalidArgumentException` for empty source strings
   - `Resource::cwd()` now returns `getcwd()` when sourceStack is empty, preventing invalid path construction
