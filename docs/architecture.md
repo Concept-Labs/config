@@ -15,7 +15,7 @@ Concept\Config is built on a modular, plugin-based architecture with clear separ
          │
          │  Uses Factory Pattern (Dependency Injection)
          │
-         ├─────► StorageFactory ──► Storage (DotArray)
+         ├─────► StorageFactory ──► Storage (DotQuery)
          │                          └─ Manages data with dot notation
          │
          ├─────► Context
@@ -28,6 +28,8 @@ Concept\Config is built on a modular, plugin-based architecture with clear separ
          │
          └─────► ParserFactory ──► Parser
                                     ├─ Processes directives & variables
+                                    └─► Plugins (Env, Reference, Import, etc.)
+```
                                     └─► Plugins (Env, Reference, Import, etc.)
 ```
 
@@ -118,7 +120,7 @@ interface StorageFactoryInterface
 ```
 
 **Default Implementation**: `DefaultStorageFactory`
-- Creates standard Storage instances using DotArray
+- Creates standard Storage instances (extends DotQuery from concept-labs/arrays)
 
 **Custom Example**:
 ```php
