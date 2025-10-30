@@ -41,6 +41,6 @@ trait ConfigurableTrait
      */
     public function hasConfig(): bool
     {
-        return $this->___config !== null;
+        return $this->___config instanceof ConfigInterface;
     }
 }

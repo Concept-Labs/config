@@ -4,6 +4,7 @@ namespace Concept\Config\Resource;
 
 use Concept\Arrays\RecursiveDotApi;
 use Concept\Config\ConfigInterface;
+use Concept\Config\Parser\ParserFactory;
 use Concept\Config\Parser\ParserInterface;
 use Concept\Config\Resource\Exception\InvalidArgumentException;
 use Concept\Config\Resource\Adapter\JsonAdapter;
@@ -63,9 +64,7 @@ class Resource implements ResourceInterface
         $fragment = false;
 
         if (is_array($source)) {
-        /**
-         @todo: parse array ?
-        */
+       
             $data = array_merge($data, $source); //copy array data
 
             return $this;

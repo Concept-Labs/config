@@ -31,7 +31,7 @@ class CommentPlugin extends AbstractPlugin
             //remove the comment directive
             unset($subjectData[$path]);
             //let the parser know that the value has been removed
-            return ParserInterface::VALUE_TO_REMOVE;
+            return ParserInterface::ABANDONED_NODE;
         }
 
         return $next($value, $path, $subjectData);

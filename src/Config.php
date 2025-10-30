@@ -16,6 +16,7 @@ use Concept\Config\Parser\ParserFactory;
 
 class Config implements ConfigInterface
 {
+    static int $nInstances = 0;
 
     /**
      * The storage
@@ -60,6 +61,7 @@ class Config implements ConfigInterface
      */
     public function __construct(array $data = [], array $context = [])
     {
+        self::$nInstances++;
         $this->configStorage = new Storage($data);
         $this->context = (new Context($context))->withEnv(getenv());
     }
@@ -68,6 +70,9 @@ class Config implements ConfigInterface
     {
         $this->configStorage = clone $this->configStorage;
         $this->context = clone $this->context;
+        $this->resource = 
+        $this->parser = null; 
+        $this->lazyResolvers = [];
     }
 
     /**
@@ -82,6 +87,14 @@ class Config implements ConfigInterface
         $this->lazyResolvers = [];
 
         return $this;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function __invoke(string $path)
+    {
+        return $this->get($path);
     }
 
     /**
@@ -166,8 +179,6 @@ class Config implements ConfigInterface
         return $this->configStorage;
     }
 
-    
-
     /**
      * {@inheritDoc}
      */
@@ -185,7 +196,7 @@ class Config implements ConfigInterface
     public function &get(string $path, mixed $default = null): mixed
     {
         $current = &$this->getStorage()->reference();
-
+        $path = trim($path, '.');
         foreach (RecursiveDotApi::path($path) as $key) {
 
             if (!is_array($current) || !array_key_exists($key, $current)) {
@@ -241,7 +252,7 @@ class Config implements ConfigInterface
             $parse
         );
 
-        $this->processLazyResolvers();
+        $this->resolveAll();
 
         return $this;
     }
@@ -261,7 +272,7 @@ class Config implements ConfigInterface
 
         $this->getStorage()->replace($importData);
 
-        $this->processLazyResolvers();
+        $this->resolveAll();
 
         return $this;
     }
@@ -282,11 +293,31 @@ class Config implements ConfigInterface
 
         $this->getStorage()->replace($importData, $path);
 
-        $this->processLazyResolvers();
+        $this->resolveAll();
 
         return $this;
     }
 
+    /**
+     * Resolve all configuration values
+     *
+     * @return static
+     */
+    protected function resolveAll(): static
+    {
+        $this->processLazyResolvers();
+
+        $this->walkResolve($this->getStorage()->reference());
+
+        return $this;
+    }
+
+    /**
+     * Walk and resolve all ResolvableInterface instances in the data
+     *
+     * @param array &$data
+     * @return static
+     */
     protected function walkResolve(array &$data): static
     {
         RecursiveApi::walk(

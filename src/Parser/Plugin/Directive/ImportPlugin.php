@@ -72,7 +72,7 @@ class ImportPlugin extends AbstractPlugin
             RecursiveDotApi::unset($subjectData, $path);
             //unset($subjectData[$path]);
             //let the parser know that the value has been removed
-            return ParserInterface::VALUE_TO_REMOVE;
+            return ParserInterface::ABANDONED_NODE;
         }
 
         return $next($value, $path, $subjectData);
@@ -103,7 +103,7 @@ class ImportPlugin extends AbstractPlugin
             $d = [];
             $this->getResource()->read($d, $src);
 
-            if (!is_array($d) || empty($d)) {
+            if (!is_array($d)) {
                 throw new InvalidArgumentException("Invalid @import source: \"$src\"");
             }
 

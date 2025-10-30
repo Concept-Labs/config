@@ -51,23 +51,9 @@ class Parser implements ParserInterface
     /**
      * {@inheritDoc}
      */
-    public function parse(array &$data): static
+    public function getParseDepth(): int
     {
-        $this->parseDepth++;
-        
-        try {
-            $this->parseNode($data, null, $data);
-
-            // Only process lazy resolvers at the top level (depth 1)
-            // This prevents premature resolution during nested parsing from @import/@include
-            if ($this->parseDepth === 1) {
-                $this->getConfig()->resolveLazy();
-            }
-
-            return $this;
-        } finally {
-            $this->parseDepth--;
-        }
+        return $this->parseDepth;
     }
 
     /**
@@ -102,9 +88,19 @@ class Parser implements ParserInterface
     /**
      * {@inheritDoc}
      */
-    public function getParseDepth(): int
+    public function parse(array &$data): static
     {
-        return $this->parseDepth;
+        $this->parseDepth++;
+        
+        try {
+            
+            $this->parseNode($data, null, $data);
+            
+        } finally {
+            $this->parseDepth--;
+        }
+
+        return $this;
     }
 
     /**
@@ -138,7 +134,7 @@ class Parser implements ParserInterface
 
             ;
 
-            if (ParserInterface::VALUE_TO_REMOVE === $value) {
+            if (ParserInterface::ABANDONED_NODE === $value) {
                 RecursiveDotApi::unset($node, $key);
                 continue;
             }

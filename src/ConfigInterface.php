@@ -13,6 +13,14 @@ interface ConfigInterface extends IteratorAggregate //, DotArrayInterface
 {
 
     /**
+     * Magic method to get value by path
+     *
+     * @param string $path
+     * @return mixed
+     */
+    public function __invoke(string $path);
+
+    /**
      * Reset the configuration to its initial state
      *
      * @return static

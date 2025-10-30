@@ -6,7 +6,7 @@ use Concept\Config\Parser\Plugin\PluginInterface;
 interface ParserInterface
 {
 
-    const VALUE_TO_REMOVE = '___REMOVE___';
+    const ABANDONED_NODE = '___ABANDONED___';
 
     /**
      * Apply the plugins to the data

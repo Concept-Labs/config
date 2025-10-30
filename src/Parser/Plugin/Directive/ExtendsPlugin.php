@@ -42,65 +42,19 @@ class ExtendsPlugin extends AbstractPlugin
         $parts = RecursiveDotApi::path($subject);
         return $parts && str_starts_with(end($parts), '@extends'); // faster than regex
     }
-
+    
     /**
      * {@inheritDoc}
      */
     public function __invoke(mixed $value, string $path, array &$subjectData, callable $next): mixed
     {
         if ($this->match($path)) {
-            
             // Check if we're in a nested parse (from @import/@include)
-            $isNestedParse = $this->getConfig()->getParser()->getParseDepth() > 1;
             
-            if ($isNestedParse) {
-                // In nested parse, resolve immediately within local context
-                // because the data will be merged into parent context
-                $extendsPath = $value;
-                
-                // Get extends data from config (might be in parent context already)
-                $extendsData = $this->getConfig()->get($extendsPath);
-                
-                if (!is_array($extendsData)) {
-                    throw new \InvalidArgumentException(sprintf(
-                        'The path "%s" does not point to a valid configuration array.',
-                        $extendsPath
-                    ));
-                }
-                
-                // Calculate the target path in local context
-                $pathTo = substr($path, 0, strrpos($path, '.@extends'));
-                if ($pathTo === false || $pathTo === '') {
-                    // @extends is at root of this file
-                    // Start with extends data, merge current data on top (overwriting with current values)
-                    $result = $extendsData;
-                    RecursiveApi::merge(
-                        $result,
-                        $subjectData,
-                        RecursiveApi::MERGE_OVERWRITE
-                    );
-                    $subjectData = $result;
-                } else {
-                    // @extends is nested
-                    // Get current data at path
-                    $currentData = RecursiveDotApi::get($subjectData, $pathTo) ?? [];
-                    // Start with extends data, merge current data on top
-                    $result = $extendsData;
-                    if (is_array($currentData)) {
-                        RecursiveApi::merge(
-                            $result,
-                            $currentData,
-                            RecursiveApi::MERGE_OVERWRITE
-                        );
-                    }
-                    // Set the result back
-                    RecursiveDotApi::set($subjectData, $pathTo, $result);
-                }
-            } else {
-                // In top-level parse, use lazy resolution for forward references
+            {
                 $this->getConfig()->addLazyResolver(
                     new Resolver(
-                        function ($config) use ($path, $value) {
+                        function ($config) use ($path, $value, &$subjectData) {
                             $extendsPath = $value;
 
                             /**
@@ -118,35 +72,28 @@ class ExtendsPlugin extends AbstractPlugin
                             // Calculate the target path (remove .@extends from the end)
                             $pathTo = substr($path, 0, strrpos($path, '.@extends'));
 
-                            /**
-                             * Get current data at the target path
-                             */
-                            $currentData = $config->get($pathTo);
-                            if (!is_array($currentData)) {
-                                $currentData = [];
-                            }
+                            
 
                             /**
                              * Start with extends data, merge current data on top (overwriting with current values)
                              */
-                            $mergedData = $extendsData;
                             RecursiveApi::merge(
-                                $mergedData,
-                                $currentData,
+                                $subjectData,
+                                $extendsData,
                                 RecursiveApi::MERGE_OVERWRITE
                             );
 
                             /**
                              * Set the merged data back to the config
                              */
-                            $config->set($pathTo, $mergedData);
+                            //$config->set($pathTo, $mergedData);
                         }
                     )
                 );
             }
             
             //let the parser know that the value has been removed
-            return ParserInterface::VALUE_TO_REMOVE;
+            return ParserInterface::ABANDONED_NODE;
         }
 
         return $next($value, $path, $subjectData);
