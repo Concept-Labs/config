@@ -9,6 +9,8 @@ use Concept\Config\Parser\ParserInterface;
 use Concept\Config\Resource\Exception\InvalidArgumentException;
 use Concept\Config\Resource\Adapter\JsonAdapter;
 use Concept\Config\Resource\Adapter\PhpAdapter;
+use Concept\Config\Resource\Adapter\YamlAdapter;
+use Concept\Config\Resource\Adapter\XmlAdapter;
 use Throwable;
 
 class Resource implements ResourceInterface
@@ -31,7 +33,8 @@ class Resource implements ResourceInterface
             (new AdapterManager())
                 ->registerAdapter(JsonAdapter::class)
                 ->registerAdapter(PhpAdapter::class)
-                //->registerAdapter(YamlAdapter::class)
+                ->registerAdapter(YamlAdapter::class)
+                ->registerAdapter(XmlAdapter::class)
                 //->registerAdapter(IniAdapter::class)
         ;
     }

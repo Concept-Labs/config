@@ -58,7 +58,9 @@ class IncludePlugin extends AbstractPlugin
     {
         $data = [];
 
-        $this->getResource()->read($data, $source);
+        // Don't parse the included data yet - let the main parse handle it
+        // so that plugins like @extends can access the full config context
+        $this->getResource()->read($data, $source, false);
 
 
         return $data;

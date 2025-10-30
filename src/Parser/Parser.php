@@ -98,6 +98,11 @@ class Parser implements ParserInterface
             
         } finally {
             $this->parseDepth--;
+            
+            // Process lazy resolvers when we're back to the top level
+            if ($this->parseDepth === 0) {
+                $this->getConfig()->resolveLazy();
+            }
         }
 
         return $this;
@@ -137,6 +142,11 @@ class Parser implements ParserInterface
             if (ParserInterface::ABANDONED_NODE === $value) {
                 RecursiveDotApi::unset($node, $key);
                 continue;
+            }
+
+            // If a plugin transformed the value into an array, we need to parse it
+            if (is_array($value)) {
+                $this->parseNode($value, $curPath, $subjectData);
             }
 
         }

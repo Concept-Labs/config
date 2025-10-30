@@ -49,48 +49,52 @@ class ExtendsPlugin extends AbstractPlugin
     public function __invoke(mixed $value, string $path, array &$subjectData, callable $next): mixed
     {
         if ($this->match($path)) {
-            // Check if we're in a nested parse (from @import/@include)
-            
-            {
-                $this->getConfig()->addLazyResolver(
-                    new Resolver(
-                        function ($config) use ($path, $value, &$subjectData) {
-                            $extendsPath = $value;
+            // Add lazy resolver to process extends after parsing is complete
+            $this->getConfig()->addLazyResolver(
+                new Resolver(
+                    function ($config) use ($path, $value) {
+                        $extendsPath = $value;
 
-                            /**
-                             * Get the extends data
-                             */
-                            $extendsData = $config->get($extendsPath);
+                        // Calculate the target path (remove .@extends from the end)
+                        $pathTo = substr($path, 0, strrpos($path, '.@extends'));
 
-                            if (!is_array($extendsData)) {
-                                throw new \InvalidArgumentException(sprintf(
-                                    'The path "%s" does not point to a valid configuration array.',
-                                    $extendsPath
-                                ));
-                            }
+                        /**
+                         * Get the extends data (what we're extending from)
+                         */
+                        $extendsData = $config->get($extendsPath);
 
-                            // Calculate the target path (remove .@extends from the end)
-                            $pathTo = substr($path, 0, strrpos($path, '.@extends'));
-
-                            
-
-                            /**
-                             * Start with extends data, merge current data on top (overwriting with current values)
-                             */
-                            RecursiveApi::merge(
-                                $subjectData,
-                                $extendsData,
-                                RecursiveApi::MERGE_OVERWRITE
-                            );
-
-                            /**
-                             * Set the merged data back to the config
-                             */
-                            //$config->set($pathTo, $mergedData);
+                        if (!is_array($extendsData)) {
+                            throw new \InvalidArgumentException(sprintf(
+                                'The path "%s" does not point to a valid configuration array.',
+                                $extendsPath
+                            ));
                         }
-                    )
-                );
-            }
+
+                        // Get current data at the target path (what we're extending)
+                        $currentData = $config->get($pathTo);
+                        if (!is_array($currentData)) {
+                            $currentData = [];
+                        }
+
+                        /**
+                         * Start with extends data (base), merge current data on top
+                         * This way current values override base values
+                         * Note: RecursiveApi::merge modifies the first argument by reference
+                         */
+                        $mergedData = $extendsData; // Start with a copy of extends data
+                        RecursiveApi::merge(
+                            $mergedData,
+                            $currentData,
+                            RecursiveApi::MERGE_OVERWRITE
+                        );
+
+                        /**
+                         * Set the merged data back to the config
+                         */
+                        $config->set($pathTo, $mergedData);
+                    }
+                )
+            );
             
             //let the parser know that the value has been removed
             return ParserInterface::ABANDONED_NODE;
