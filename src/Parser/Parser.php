@@ -144,6 +144,11 @@ class Parser implements ParserInterface
                 continue;
             }
 
+            // If a plugin transformed the value into an array, we need to parse it
+            if (is_array($value)) {
+                $this->parseNode($value, $curPath, $subjectData);
+            }
+
         }
 
         return $this;
