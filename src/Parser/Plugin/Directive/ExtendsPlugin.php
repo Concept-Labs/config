@@ -1,102 +1,41 @@
 <?php
 namespace Concept\Config\Parser\Plugin\Directive;
 
-use Concept\Arrays\RecursiveApi;
-use Concept\Arrays\RecursiveDotApi;
-use Concept\Config\Parser\ParserInterface;
 use Concept\Config\Parser\Plugin\AbstractPlugin;
-use Concept\Config\Parser\Resolver;
 
 /**
  * Class ExtendsPlugin
  *
- * This plugin is responsible for handling the "extends" directive within the configuration parser.
- * It allows the inclusion of external configuration files or resources into the current configuration context.
- * The plugin ensures that imported configurations are properly parsed and integrated.
+ * This plugin is responsible for marking @extends directives for later processing.
+ * The actual merging happens in Config::processExtendsDirectives() after all
+ * parsing and initial resolution is complete.
  * 
  * Syntax:
- *  "@extends": "path<:mode>"
+ *  "@extends": "path.to.base.node"
  * 
- * where:
- * - "path" is the path to the configuration file or resource to be imported
- *      - the path must be absolute
- * - <:mode> is one of the following:
- *     - RecursiveApi::MERGE_COMBINE: merge the imported data into the current data
- *     - RecursiveApi::MERGE_OVERWRITE: overwrite the current data with the imported data
- *     - RecursiveApi::MERGE_PRESERVE: preserve the current data and ignore the imported data
- *
+ * The node containing @extends will inherit all properties from the base node,
+ * with its own properties taking precedence (overwriting base properties).
+ * 
+ * This approach allows for:
+ * - Forward references (extending a node defined later)
+ * - Extending nodes that contain Resolvable values
+ * - Extending nodes from imported/included files
  *
  * @package ConceptLabs\Config\Parser\Plugin\Directive
  */
 class ExtendsPlugin extends AbstractPlugin
 {
-    
-    /**
-     * Check if the value can be processed by the plugin
-     * 
-     * @param string $value
-     * 
-     */
-    protected function match(string $subject): bool
-    {
-        $parts = RecursiveDotApi::path($subject);
-        return $parts && str_starts_with(end($parts), '@extends'); // faster than regex
-    }
-    
     /**
      * {@inheritDoc}
+     * 
+     * The ExtendsPlugin doesn't modify values during parsing.
+     * It simply passes through, allowing @extends directives to remain
+     * in the data until Config::processExtendsDirectives() handles them.
      */
     public function __invoke(mixed $value, string $path, array &$subjectData, callable $next): mixed
     {
-        if ($this->match($path)) {
-            // Check if we're in a nested parse (from @import/@include)
-            
-            {
-                $this->getConfig()->addLazyResolver(
-                    new Resolver(
-                        function ($config) use ($path, $value, &$subjectData) {
-                            $extendsPath = $value;
-
-                            /**
-                             * Get the extends data
-                             */
-                            $extendsData = $config->get($extendsPath);
-
-                            if (!is_array($extendsData)) {
-                                throw new \InvalidArgumentException(sprintf(
-                                    'The path "%s" does not point to a valid configuration array.',
-                                    $extendsPath
-                                ));
-                            }
-
-                            // Calculate the target path (remove .@extends from the end)
-                            $pathTo = substr($path, 0, strrpos($path, '.@extends'));
-
-                            
-
-                            /**
-                             * Start with extends data, merge current data on top (overwriting with current values)
-                             */
-                            RecursiveApi::merge(
-                                $subjectData,
-                                $extendsData,
-                                RecursiveApi::MERGE_OVERWRITE
-                            );
-
-                            /**
-                             * Set the merged data back to the config
-                             */
-                            //$config->set($pathTo, $mergedData);
-                        }
-                    )
-                );
-            }
-            
-            //let the parser know that the value has been removed
-            return ParserInterface::ABANDONED_NODE;
-        }
-
+        // Pass through to next plugin - no processing needed during parsing
+        // The @extends directive will be processed later by Config::processExtendsDirectives()
         return $next($value, $path, $subjectData);
     }
-    
 }

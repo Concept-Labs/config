@@ -3,57 +3,69 @@
 namespace Concept\Config\Resource;
 
 use Concept\Arrays\RecursiveDotApi;
-use Concept\Config\ConfigInterface;
-use Concept\Config\Parser\ParserFactory;
+use Concept\Config\Contract\ParserProviderInterface;
 use Concept\Config\Parser\ParserInterface;
 use Concept\Config\Resource\Exception\InvalidArgumentException;
-use Concept\Config\Resource\Adapter\JsonAdapter;
-use Concept\Config\Resource\Adapter\PhpAdapter;
 use Throwable;
 
+/**
+ * Resource handler for configuration I/O operations
+ * 
+ * This class is responsible for reading and writing configuration data
+ * from various sources using registered adapters. It maintains separation
+ * of concerns by accepting dependencies through constructor injection.
+ */
 class Resource implements ResourceInterface
 {
+    /**
+     * Stack of sources being processed (for circular reference detection)
+     * 
+     * @var array<int, string>
+     */
     private array $sourceStack = [];
 
-    private ?AdapterManagerInterface $adapterManager = null;
+    /**
+     * Optional parser provider for parsing configuration data
+     * 
+     * @var ParserProviderInterface|null
+     */
+    private ?ParserProviderInterface $parserProvider = null;
 
     /**
-     * Dependency injection
+     * Constructor with dependency injection
      * 
-     * @param ConfigInterface $config
+     * @param AdapterManagerInterface $adapterManager The adapter manager for handling different file formats
      */
-    public function __construct(private ConfigInterface $config)
-    {
-        /**
-         @todo: create adapters configuration to be able to register adapters dynamically
-         */
-        $this->adapterManager = 
-            (new AdapterManager())
-                ->registerAdapter(JsonAdapter::class)
-                ->registerAdapter(PhpAdapter::class)
-                //->registerAdapter(YamlAdapter::class)
-                //->registerAdapter(IniAdapter::class)
-        ;
+    public function __construct(
+        private AdapterManagerInterface $adapterManager
+    ) {
     }
 
     /**
-     * Get the config
+     * Set the parser provider
      * 
-     * @return ConfigInterface
+     * This allows the resource to access a parser when needed for parsing
+     * configuration data during read operations.
+     * 
+     * @param ParserProviderInterface $parserProvider The parser provider
+     * 
+     * @return static
      */
-    protected function getConfig(): ConfigInterface
+    public function setParserProvider(ParserProviderInterface $parserProvider): static
     {
-        return $this->config;
+        $this->parserProvider = $parserProvider;
+        
+        return $this;
     }
 
     /**
-     * Get the parser
+     * Get the parser from the parser provider
      * 
-     * @return ParserInterface
+     * @return ParserInterface|null The parser instance or null if no provider is set
      */
-    protected function getParser(): ParserInterface
+    protected function getParser(): ?ParserInterface
     {
-        return $this->getConfig()->getParser();
+        return $this->parserProvider?->getParser();
     }
 
     /**
@@ -111,11 +123,11 @@ class Resource implements ResourceInterface
             );
         }
 
-        if ($withParser && $this->getParser()) {
+        if ($withParser && ($parser = $this->getParser())) {
             /**
              * Parse the data using the configured parser
              */
-            $this->getParser()->parse($data);
+            $parser->parse($data);
         }
 
         /**

@@ -7,6 +7,82 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed - SOLID Refactoring
+- **Architecture Refactoring**: Major refactoring to follow SOLID principles while maintaining backward compatibility
+  - **Dependency Inversion Principle (DIP)**: 
+    - Introduced factory pattern for creating Storage, Resource, and Parser instances
+    - Config class now accepts optional factory interfaces via constructor
+    - Resource class accepts AdapterManager via constructor instead of creating it
+    - Parser class accepts optional ConfigInterface, reducing tight coupling
+  - **Single Responsibility Principle (SRP)**:
+    - Config class no longer creates its own dependencies - delegates to factories
+    - Resource class no longer creates AdapterManager internally
+    - Each factory class has single responsibility of creating one component type
+  - **Open/Closed Principle (OCP)**:
+    - System is open for extension through custom factories
+    - Can replace Storage, Resource, or Parser implementations without modifying code
+    - Adapter and plugin systems remain highly extensible
+  - **Interface Segregation Principle (ISP)**:
+    - Added focused interfaces: `ParserProviderInterface`, `ContextProviderInterface`
+    - Components depend only on interfaces they actually use
+  - All changes are backward compatible - existing code continues to work without modifications
+
+### Added
+- **Factory Interfaces and Implementations**:
+  - `StorageFactoryInterface` and `DefaultStorageFactory` for creating Storage instances
+  - `ResourceFactoryInterface` and `DefaultResourceFactory` for creating Resource instances
+  - `ParserFactoryInterface` and `DefaultParserFactory` for creating Parser instances
+- **Helper Interfaces**:
+  - `ParserProviderInterface` for components that provide parser access
+  - `ContextProviderInterface` for components that provide context access
+- **Enhanced PHPDoc Documentation**:
+  - Comprehensive documentation for all interfaces
+  - Detailed method documentation for all classes
+  - Usage examples and design pattern documentation
+  - Full parameter and return type documentation
+
+### Changed
+- **Config Class**:
+  - Constructor now accepts optional factory instances for dependency injection
+  - Implements `ParserProviderInterface` for better integration
+  - Uses factories to create Storage, Resource, and Parser instances
+  - Maintains backward compatibility with default factories when none are provided
+- **Resource Class**:
+  - Constructor now requires `AdapterManagerInterface` parameter
+  - Removed direct dependency on `ConfigInterface`
+  - Uses `ParserProviderInterface` for optional parser access via `setParserProvider()`
+  - Simplified dependency management
+- **Parser Class**:
+  - ConfigInterface is now optional in constructor
+  - Added `setConfig()` method for post-construction configuration
+  - Supports creating plugins with or without Config dependency
+- **AbstractPlugin Class**:
+  - ConfigInterface is now optional in constructor
+  - `getConfig()` method returns nullable ConfigInterface
+  - Supports plugins that don't require Config access
+- **ResourceInterface**:
+  - Added `setParserProvider()` method for setting parser access
+  - Enhanced documentation for read/write methods
+- **ConfigInterface**:
+  - Now extends `ParserProviderInterface`
+  - Added `prototype()` method documentation
+  - Added `query()` method documentation
+  - Comprehensive PHPDoc for all methods
+
+### Documentation
+- Updated all interface documentation with comprehensive PHPDoc
+- Added detailed documentation to all implementation classes
+- Documented design patterns used (Factory, Middleware, Strategy, etc.)
+- Added usage examples in interface documentation
+- Improved parameter and return type documentation throughout
+
+### Technical Details
+- Factory pattern enables dependency injection without breaking changes
+- Default factories provide backward compatibility
+- All tests pass with no new failures (11 pre-existing ExtendsPlugin test failures remain)
+- 161 tests passing, 301 assertions
+- No breaking changes to public API
+
 ### Fixed
 - **Resource path validation**: Added validation to prevent empty source paths from creating invalid adapter lookups
   - `Resource::absolutePath()` now throws `InvalidArgumentException` for empty source strings

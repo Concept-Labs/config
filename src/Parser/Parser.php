@@ -8,19 +8,27 @@ use Concept\Config\Parser\Exception\InvalidArgumentException;
 
 use Generator;
 
+/**
+ * Configuration parser with plugin system
+ * 
+ * This class processes configuration data through a middleware-style plugin
+ * system. Plugins can be registered with priorities to control execution order.
+ * The parser maintains separation of concerns by optionally accepting a
+ * ConfigInterface for plugins that need access to the full configuration context.
+ */
 class Parser implements ParserInterface
 {
     /**
      * The plugins
      * 
-     * @var array<int, array<string, PluginInterface|callable>>
+     * @var array<int, array<int, PluginInterface|callable>>
      */
     private array $plugins = [];
 
     /**
-     * The plguin middleware stack
+     * The plugin middleware stack
      * 
-     * @var callable
+     * @var callable|null
      */
     private $pluginMiddlewareStack = null;
 
@@ -32,18 +40,45 @@ class Parser implements ParserInterface
     private int $parseDepth = 0;
 
     /**
+     * Optional config instance for plugins that need access to config
      * 
+     * @var ConfigInterface|null
      */
-    public function __construct(private ConfigInterface $config)
+    private ?ConfigInterface $config = null;
+
+    /**
+     * Constructor
+     * 
+     * @param ConfigInterface|null $config Optional config instance for plugins that need it
+     */
+    public function __construct(?ConfigInterface $config = null)
     {
+        $this->config = $config;
     }
 
     /**
-     * Get the config
+     * Set the config instance
      * 
-     * @return ConfigInterface
+     * This allows setting the config after construction, useful for breaking
+     * circular dependencies during object creation.
+     * 
+     * @param ConfigInterface $config The config instance
+     * 
+     * @return static
      */
-    protected function getConfig(): ConfigInterface
+    public function setConfig(ConfigInterface $config): static
+    {
+        $this->config = $config;
+        
+        return $this;
+    }
+
+    /**
+     * Get the config instance
+     * 
+     * @return ConfigInterface|null The config instance or null if not set
+     */
+    protected function getConfig(): ?ConfigInterface
     {
         return $this->config;
     }
@@ -98,6 +133,16 @@ class Parser implements ParserInterface
             
         } finally {
             $this->parseDepth--;
+        }
+
+        // After parsing is complete at top level, trigger resolution
+        // This ensures @extends and other resolvable values are processed
+        if ($this->parseDepth === 0 && $this->config !== null) {
+            // Process lazy resolvers first
+            $this->config->resolveLazy();
+            
+            // Then resolve all values including @extends directives
+            $this->config->resolveAllValues();
         }
 
         return $this;
@@ -190,10 +235,13 @@ class Parser implements ParserInterface
     /**
      * Instantiate a plugin
      * 
-     * @param string $plugin
+     * Creates a plugin instance from a class name. If the parser has a config
+     * instance, it will be passed to plugins that accept it.
      * 
-     * @return PluginInterface
-     * @throws InvalidArgumentException
+     * @param string $plugin The plugin class name
+     * 
+     * @return PluginInterface The instantiated plugin
+     * @throws InvalidArgumentException If the plugin class is invalid
      */
     protected function createPlugin(string $plugin): PluginInterface
     {
@@ -206,7 +254,11 @@ class Parser implements ParserInterface
                 )
             );
         }
-        return new $plugin($this->getConfig());
+        
+        // Pass config to plugin if available, otherwise create without it
+        return $this->config !== null 
+            ? new $plugin($this->config)
+            : new $plugin();
     }
    
 }
