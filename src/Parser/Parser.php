@@ -135,6 +135,11 @@ class Parser implements ParserInterface
             $this->parseDepth--;
         }
 
+        // After parsing is complete at top level, resolve lazy resolvers
+        if ($this->parseDepth === 0 && $this->config !== null) {
+            $this->config->resolveLazy();
+        }
+
         return $this;
     }
 
