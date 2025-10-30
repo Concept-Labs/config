@@ -378,10 +378,85 @@ class Config implements ConfigInterface, ParserProviderInterface
     protected function resolveAll(): static
     {
         $this->processLazyResolvers();
-
-        $this->walkResolve($this->getStorage()->reference());
+        
+        $this->resolveAllValues();
 
         return $this;
+    }
+    
+    /**
+     * Process @extends directives in the configuration
+     * 
+     * Walks through the configuration and merges nodes that have @extends directives
+     * with their base nodes. This is done after initial resolution to ensure
+     * referenced nodes exist and have been resolved.
+     * 
+     * @param array &$data The data array to process
+     * 
+     * @return static The config instance for method chaining
+     */
+    protected function processExtendsDirectives(array &$data): static
+    {
+        $this->walkExtendsNodes($data);
+        return $this;
+    }
+    
+    /**
+     * Recursively walk through data and process @extends directives
+     * 
+     * @param array &$node The current node being processed
+     * 
+     * @return void
+     */
+    protected function walkExtendsNodes(array &$node): void
+    {
+        // First, recursively process all child nodes
+        foreach ($node as $key => &$value) {
+            if (is_array($value)) {
+                $this->walkExtendsNodes($value);
+            }
+        }
+        
+        // Then check if this node has @extends directive
+        if (isset($node['@extends'])) {
+            $extendsPath = $node['@extends'];
+            
+            // Get the base data to extend from
+            $extendsData = $this->get($extendsPath);
+            
+            if ($extendsData === null) {
+                throw new \InvalidArgumentException(sprintf(
+                    'The path "%s" does not exist in the configuration.',
+                    $extendsPath
+                ));
+            }
+            
+            if (!is_array($extendsData)) {
+                throw new \InvalidArgumentException(sprintf(
+                    'The path "%s" does not point to a valid configuration array.',
+                    $extendsPath
+                ));
+            }
+            
+            // Copy current node data (excluding @extends)
+            $currentData = [];
+            foreach ($node as $k => $v) {
+                if ($k !== '@extends') {
+                    $currentData[$k] = $v;
+                }
+            }
+            
+            // Merge: base data first, then current data (current overrides base)
+            $mergedData = $extendsData;
+            RecursiveApi::merge(
+                $mergedData,
+                $currentData,
+                RecursiveApi::MERGE_OVERWRITE
+            );
+            
+            // Replace the node with merged data
+            $node = $mergedData;
+        }
     }
 
     /**
@@ -440,6 +515,28 @@ class Config implements ConfigInterface, ParserProviderInterface
     public function resolveLazy(): static
     {
         return $this->processLazyResolvers();
+    }
+    
+    /**
+     * Resolve all configuration values including extends directives
+     * 
+     * This is a public method that can be called after parsing to ensure
+     * all Resolvable values and @extends directives are processed.
+     * 
+     * @return static The config instance for method chaining
+     */
+    public function resolveAllValues(): static
+    {
+        // First pass: resolve all ResolvableInterface instances
+        $this->walkResolve($this->getStorage()->reference());
+        
+        // Second pass: process @extends directives
+        $this->processExtendsDirectives($this->getStorage()->reference());
+        
+        // Third pass: resolve any new ResolvableInterface instances created by extends
+        $this->walkResolve($this->getStorage()->reference());
+        
+        return $this;
     }
 
     /**

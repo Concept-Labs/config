@@ -135,9 +135,14 @@ class Parser implements ParserInterface
             $this->parseDepth--;
         }
 
-        // After parsing is complete at top level, resolve lazy resolvers
+        // After parsing is complete at top level, trigger resolution
+        // This ensures @extends and other resolvable values are processed
         if ($this->parseDepth === 0 && $this->config !== null) {
+            // Process lazy resolvers first
             $this->config->resolveLazy();
+            
+            // Then resolve all values including @extends directives
+            $this->config->resolveAllValues();
         }
 
         return $this;
