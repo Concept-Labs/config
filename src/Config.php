@@ -12,9 +12,23 @@ use Concept\Config\Resource\ResourceInterface;
 use Concept\Config\Resource\Resource;
 use Concept\Config\Parser\ParserInterface;
 use Concept\Config\Parser\ResolvableInterface;
-use Concept\Config\Parser\ParserFactory;
+use Concept\Config\Contract\ParserProviderInterface;
+use Concept\Config\Factory\StorageFactoryInterface;
+use Concept\Config\Factory\DefaultStorageFactory;
+use Concept\Config\Factory\ResourceFactoryInterface;
+use Concept\Config\Factory\DefaultResourceFactory;
+use Concept\Config\Factory\ParserFactoryInterface;
+use Concept\Config\Factory\DefaultParserFactory;
 
-class Config implements ConfigInterface
+/**
+ * Main configuration class
+ * 
+ * This class orchestrates configuration management by coordinating between
+ * storage, parser, resource, and context components. It follows SOLID principles
+ * by accepting dependencies through factory interfaces, enabling flexible
+ * component replacement while maintaining backward compatibility.
+ */
+class Config implements ConfigInterface, ParserProviderInterface
 {
     static int $nInstances = 0;
 
@@ -35,14 +49,14 @@ class Config implements ConfigInterface
     /**
      * The resource
      * 
-     * @var ResourceInterface
+     * @var ResourceInterface|null
      */
     private ?ResourceInterface $resource = null;
 
     /**
      * The parser
      * 
-     * @var ParserInterface
+     * @var ParserInterface|null
      */
     private ?ParserInterface $parser = null;
 
@@ -54,23 +68,74 @@ class Config implements ConfigInterface
     private array $lazyResolvers = [];
 
     /**
-     * Constructor
+     * Factory for creating storage instances
      * 
-     * @param array $data
-     * @param array $context
+     * @var StorageFactoryInterface
      */
-    public function __construct(array $data = [], array $context = [])
-    {
+    private StorageFactoryInterface $storageFactory;
+
+    /**
+     * Factory for creating resource instances
+     * 
+     * @var ResourceFactoryInterface
+     */
+    private ResourceFactoryInterface $resourceFactory;
+
+    /**
+     * Factory for creating parser instances
+     * 
+     * @var ParserFactoryInterface
+     */
+    private ParserFactoryInterface $parserFactory;
+
+    /**
+     * Constructor with optional dependency injection
+     * 
+     * Accepts data and context for immediate configuration, plus optional
+     * factory instances for creating internal components. This design follows
+     * the Dependency Inversion Principle while maintaining backward compatibility.
+     * 
+     * @param array $data Initial configuration data
+     * @param array $context Initial context data
+     * @param StorageFactoryInterface|null $storageFactory Optional factory for creating storage
+     * @param ResourceFactoryInterface|null $resourceFactory Optional factory for creating resources
+     * @param ParserFactoryInterface|null $parserFactory Optional factory for creating parsers
+     */
+    public function __construct(
+        array $data = [],
+        array $context = [],
+        ?StorageFactoryInterface $storageFactory = null,
+        ?ResourceFactoryInterface $resourceFactory = null,
+        ?ParserFactoryInterface $parserFactory = null
+    ) {
         self::$nInstances++;
-        $this->configStorage = new Storage($data);
+        
+        // Use provided factories or create defaults
+        $this->storageFactory = $storageFactory ?? new DefaultStorageFactory();
+        $this->resourceFactory = $resourceFactory ?? new DefaultResourceFactory();
+        $this->parserFactory = $parserFactory ?? new DefaultParserFactory($this);
+        
+        // Set config reference for parser factory if it supports it
+        if ($this->parserFactory instanceof DefaultParserFactory) {
+            $this->parserFactory->setConfig($this);
+        }
+        
+        // Create storage and context using factories
+        $this->configStorage = $this->storageFactory->create($data);
         $this->context = (new Context($context))->withEnv(getenv());
     }
 
+    /**
+     * Clone the config instance
+     * 
+     * Creates a deep copy of the configuration with cloned storage and context.
+     * Resource and parser instances are not cloned to avoid state duplication.
+     */
     public function __clone()
     {
         $this->configStorage = clone $this->configStorage;
         $this->context = clone $this->context;
-        $this->resource = 
+        $this->resource = null;
         $this->parser = null; 
         $this->lazyResolvers = [];
     }
@@ -170,9 +235,12 @@ class Config implements ConfigInterface
     }
 
     /**
-     * Get the storage
+     * Get the storage instance
      * 
-     * @return StorageInterface
+     * Returns the internal storage object that manages configuration data
+     * using dot notation access patterns.
+     * 
+     * @return StorageInterface The storage instance
      */
     protected function getStorage(): StorageInterface
     {
@@ -301,7 +369,11 @@ class Config implements ConfigInterface
     /**
      * Resolve all configuration values
      *
-     * @return static
+     * Processes all lazy resolvers and walks through the configuration
+     * data to resolve any ResolvableInterface instances. This ensures
+     * all deferred resolutions are completed.
+     *
+     * @return static The config instance for method chaining
      */
     protected function resolveAll(): static
     {
@@ -313,10 +385,15 @@ class Config implements ConfigInterface
     }
 
     /**
-     * Walk and resolve all ResolvableInterface instances in the data
+     * Walk through data and resolve ResolvableInterface instances
      *
-     * @param array &$data
-     * @return static
+     * Recursively walks through the configuration data array and resolves
+     * any values that implement ResolvableInterface by calling them with
+     * the config instance.
+     *
+     * @param array &$data The data array to walk through
+     * 
+     * @return static The config instance for method chaining
      */
     protected function walkResolve(array &$data): static
     {
@@ -348,6 +425,9 @@ class Config implements ConfigInterface
         return $this;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function addLazyResolver(ResolvableInterface $resolver): static
     {
         $this->lazyResolvers[] = $resolver;
@@ -362,6 +442,15 @@ class Config implements ConfigInterface
         return $this->processLazyResolvers();
     }
 
+    /**
+     * Process all pending lazy resolvers
+     *
+     * Executes all registered lazy resolvers and clears the resolver queue.
+     * Lazy resolvers are callables that are deferred until all configuration
+     * loading is complete, enabling forward references.
+     *
+     * @return static The config instance for method chaining
+     */
     protected function processLazyResolvers(): static
     {
         foreach ($this->lazyResolvers as $resolver) {
@@ -386,7 +475,12 @@ class Config implements ConfigInterface
      */
     public function getResource(): ResourceInterface
     {
-        return $this->resource ??= new Resource($this);
+        if ($this->resource === null) {
+            $this->resource = $this->resourceFactory->create();
+            $this->resource->setParserProvider($this);
+        }
+        
+        return $this->resource;
     }
 
     /**
@@ -394,7 +488,7 @@ class Config implements ConfigInterface
      */
     public function getParser(): ParserInterface
     {
-        return $this->parser ??= ParserFactory::create($this);
+        return $this->parser ??= $this->parserFactory->create();
     }
 
     /**
