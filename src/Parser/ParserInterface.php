@@ -3,55 +3,62 @@ namespace Concept\Config\Parser;
 
 use Concept\Config\Parser\Plugin\PluginInterface;
 
+/**
+ * Interface for configuration parsers
+ * 
+ * Parsers process configuration data through a plugin system, applying
+ * transformations, resolving variables, and handling directives. Plugins
+ * are executed as middleware in priority order.
+ */
 interface ParserInterface
 {
-
+    /**
+     * Special value indicating a node should be abandoned (removed)
+     */
     const ABANDONED_NODE = '___ABANDONED___';
 
     /**
-     * Apply the plugins to the data
+     * Apply plugins to configuration data
      * 
-     * @param array &$data  The data to plug
+     * Processes the data array through all registered plugins in priority
+     * order. Each plugin can transform values, resolve variables, or mark
+     * nodes for removal.
      * 
-     * @return static
+     * @param array &$data The data to process (passed by reference)
+     * 
+     * @return static The parser instance for method chaining
      */
     public function parse(array &$data): static;
 
-
     /**
-     * Register a plugin.
+     * Register a plugin with a priority
      * 
-     * @param PluginInterface|callable $plugin The plugin to register.
+     * Registers a plugin to be executed during parsing. Plugins are executed
+     * in priority order (higher numbers first). Multiple plugins can have the
+     * same priority and will be executed in registration order within that priority.
      * 
-     *     The callable should have the signature: 
-     *     `function (mixed $value, string $path, callable $next): mixed`
+     * The callable should have the signature: 
+     * `function (mixed $value, string $path, array &$subjectData, callable $next): mixed`
      * 
-     *     - The callable must return the modified `$value`.
-     *     - To continue the chain, the `$next` callable should be called.
+     * - The callable must return the modified `$value`
+     * - To continue the chain, the `$next` callable should be called
+     * - `$next` has the signature: `function (mixed $value, string $path, array &$subjectData): mixed`
      * 
-     *     `$next` should have the signature:  
-     *     `function (mixed $value, string $path): mixed`
+     * @param PluginInterface|callable|string $plugin The plugin to register (object, callable, or class name)
+     * @param int $priority The priority (higher = earlier execution, default 0)
      * 
-     * @param int $priority The priority of the plugin.
-     * 
-     * @return static
+     * @return static The parser instance for method chaining
      */
-    public function registerPlugin(PluginInterface|callable $plugin, int $priority = 0): static;
+    public function registerPlugin(PluginInterface|callable|string $plugin, int $priority = 0): static;
 
     /**
-     * Get current parse depth
+     * Get the current parse depth
      * 
-     * @return int
+     * Returns the current nesting level of parse() calls. This is useful for
+     * plugins that need to behave differently at different depths or prevent
+     * infinite recursion.
+     * 
+     * @return int The current parse depth (0 when not parsing)
      */
     public function getParseDepth(): int;
-
-    /**
-     * Get a plugin by name
-     * 
-     * @param string $plugin The name of the plugin
-     * 
-     * @return PluginInterface|callable
-     */
-    //public function getPlugin(string $plugin): PluginInterface|callable;
-
 }
