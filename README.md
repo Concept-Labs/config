@@ -1,5 +1,5 @@
 
-# Concept\Config
+# Concept/Config
 
 A powerful, flexible, and extensible configuration management library for PHP 8.2+.
 
