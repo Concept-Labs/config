@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **README cleanup**: Removed all badge images (shields.io) and emoji icons from `README.md` and `README-UA.md` for a cleaner, more human-readable presentation
+- **README merge conflict resolved**: Fixed unresolved git merge conflict in `README.md` that left duplicate legacy content at the bottom of the file
+
 ### Changed - SOLID Refactoring
 - **Architecture Refactoring**: Major refactoring to follow SOLID principles while maintaining backward compatibility
   - **Dependency Inversion Principle (DIP)**: 
